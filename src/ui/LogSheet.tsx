@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Activity, DateKey, LogState } from '../engine';
 import { formatShortDate, t } from '../i18n';
+import { track } from '../analytics';
 import { appStore, useLog } from '../store/appStore';
 import { Button } from './components';
 import { Chip, Help, Sheet, inputStyle } from './controls';
@@ -27,6 +28,8 @@ export function LogSheet({ activity, date, mode, visible, onClose }: { activity:
   const confirm = () => {
     const n = value.trim() === '' ? null : Number(value.replace(',', '.'));
     appStore.setLog(activity.id, date, state, { value: Number.isFinite(n as number) ? n : null, reason: state === 'skip' ? reason : null });
+    if (state === 'skip') track('skip', { reason: reason ?? 'none' });
+    else if (mode === 'full') track('edit_past', { state: state ?? 'empty' });
     onClose();
   };
   const title = mode === 'skip' ? t('today.skipTitle', { name: activity.name }) : mode === 'value' ? t('today.valueTitle') : t('month.editCell', { name: activity.name, date: formatShortDate(date) });

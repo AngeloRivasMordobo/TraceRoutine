@@ -39,6 +39,15 @@ cellState(activity, date, today, lookup);         // done | min | skip | pending
 
 "Today" is always passed in explicitly, so the engine is testable and the widget (v1.1) can reuse it unchanged.
 
+## Wave 3 status
+
+- [x] TR-55 … TR-57 Stats: month consistency overall and per activity (tap to focus one), best month, best/worst weekday over due days only (14-day threshold), 12-week trend with a text summary
+- [x] TR-58 … TR-62 Reminders: pure planner (one notification per due day, morning summary folding, today skipped when logged, projection for relative rules, past times dropped) + native service (permission pre-prompt, Android channel, Done/Minimum actions that log without opening the app, idempotent rescheduling on every store change and on foreground). Pending: BOOT_COMPLETED / background task, device verification
+- [x] TR-63 … TR-69 Settings: language, theme (dark/light/auto), reminder permission state, morning summary and time, export CSV (UTF-8 BOM), JSON backup and import (replace/merge with preview), archived list with unarchive, delete all with double confirmation (typed DELETE), free limit of 5 with counter and guard in the editor, Pro section with interest capture, analytics opt-out, feedback email, version
+- [x] TR-70, TR-71 Onboarding in two steps illustrated with real cells, language switch, skip; guided first activity with 4 profile suggestions that prefill the editor (lands on Month)
+- [x] TR-73 empty states; TR-74 `docs/glossary.md`; TR-77 analytics abstraction with named events and opt-out (PostHog/Sentry sinks pending keys); TR-76 three Maestro flows as a starting point
+- [ ] TR-75 accessibility audit on device; TR-78 performance measurements; native date/time pickers
+
 ## Wave 2 status
 
 - [x] TR-31 … TR-38 Activity editor: fields, minimum, presets, 5 frequency types, calendar vs. since-last-time cards with live examples, month preview from the engine, dates with duration shortcuts, reminder, inline validation, edit/archive/delete

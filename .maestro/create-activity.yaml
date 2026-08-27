@@ -1,0 +1,9 @@
+# TR-76 · critical flow 1: create an activity with a preset and see it in the grid
+appId: app.traceroutine
+---
+- launchApp
+- tapOn: "Empezar"
+- tapOn: "Entrenar día por medio"
+- assertVisible: "Nueva actividad"
+- tapOn: "Crear actividad"
+- assertVisible: "agosto 2026"

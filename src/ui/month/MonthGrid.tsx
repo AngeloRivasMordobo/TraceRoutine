@@ -8,6 +8,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { nextLogState, type Activity, type CellState, type DateKey } from '../../engine';
 import { formatShortDate, t, weekdayLetters } from '../../i18n';
+import { track } from '../../analytics';
 import { appStore, useAppStore, useLogLookup } from '../../store/appStore';
 import { Cell } from '../Cell';
 import { ActivityIcon } from '../icons';
@@ -34,8 +35,10 @@ export function MonthGrid({ y, m }: { y: number; m: number }) {
   const colorOf = (a: Activity) => activityColors[a.color as ActivityColor] ?? th.accent;
 
   const onCell = useCallback((a: Activity, date: DateKey) => {
-    appStore.setLog(a.id, date, nextLogState(L(a.id, date)));
-  }, [L]);
+    const next = nextLogState(L(a.id, date));
+    appStore.setLog(a.id, date, next);
+    if (date !== today) track('edit_past', { state: next ?? 'empty' });
+  }, [L, today]);
 
   const header = (
     <View style={[styles.head, { backgroundColor: th.bg, borderBottomColor: th.line, height: HEAD_H }]}>

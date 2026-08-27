@@ -1,4 +1,5 @@
 import { Link, useRouter } from 'expo-router';
+import { track } from '@/src/analytics';
 import { useMemo, useState } from 'react';
 import { Animated, FlatList, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -144,8 +145,9 @@ function ActivityCard({ a, today }: { a: Activity; today: string }) {
     if (st === 'skip') return appStore.setLog(a.id, today, null);
     if (a.record !== 'check' && st !== 'min') return setSheet('value');
     appStore.setLog(a.id, today, 'done', { value: log?.value ?? null });
+    track('complete', { type: a.freq.type });
   };
-  const minimum = () => appStore.setLog(a.id, today, 'min', { value: log?.value ?? null });
+  const minimum = () => { appStore.setLog(a.id, today, 'min', { value: log?.value ?? null }); track('minimum', { type: a.freq.type }); };
 
   return (
     <View style={[styles.cardWrap, { backgroundColor: th.surface2 }]}>
@@ -165,6 +167,7 @@ function ActivityCard({ a, today }: { a: Activity; today: string }) {
             {!!a.minimal && st !== 'skip' && <Text style={[styles.min, { color: th.faint }]} numberOfLines={1}>{t('today.minPrefix', { text: a.minimal })}</Text>}
           </View>
           <Pressable
+            testID={`check-${a.id}`}
             accessibilityRole="button"
             accessibilityLabel={st ? t('today.undo', { name: a.name }) : t('today.markDone', { name: a.name })}
             accessibilityActions={[{ name: 'minimum', label: t('today.didMinimum') }, { name: 'skip', label: t('today.skip') }]}

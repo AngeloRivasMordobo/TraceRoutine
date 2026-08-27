@@ -1,0 +1,9 @@
+# TR-76 · critical flow 3: edit the past from the grid
+appId: app.traceroutine
+---
+- launchApp
+- tapOn: "Mes"
+- longPressOn:
+    text: "Gym, Aug 25"
+- tapOn: "mínima"
+- tapOn: "Listo"

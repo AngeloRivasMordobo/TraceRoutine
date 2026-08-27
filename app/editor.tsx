@@ -1,4 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { track } from '@/src/analytics';
+import { FREE_ACTIVE_LIMIT } from '@/src/store/limits';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,14 +35,25 @@ const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 /** Activity editor (TR-31 … TR-38). Everything the preview shows comes from the engine. */
 export default function EditorScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, first: firstParam, preset: presetParam, icon, color: colorParam, name: nameParam, end: endParam } = useLocalSearchParams<{ id?: string; first?: string; preset?: string; icon?: string; color?: string; name?: string; end?: string }>();
   const existing = useActivity(id);
   const today = useAppStore((s) => s.today);
   const lang = useAppStore((s) => s.lang);
+  const activeCount = useAppStore((s) => s.activities.filter((a) => !a.archived && !(a.end && a.end < s.today)).length);
   const router = useRouter();
   const th = useTheme();
 
-  const [draft, setDraft] = useState<Activity>(() => existing ?? newDraft(newId(), today));
+  const [draft, setDraft] = useState<Activity>(() => {
+    if (existing) return existing;
+    let d = newDraft(newId(), today);
+    if (presetParam) d = { ...d, freq: applyPreset(d.freq, presetParam as Parameters<typeof applyPreset>[1], { cycleSteps: localizedCycleSteps(lang) }) };
+    if (icon) d = { ...d, icon };
+    if (colorParam) d = { ...d, color: colorParam };
+    if (nameParam) d = { ...d, name: nameParam };
+    if (endParam === '21d') d = { ...d, end: applyDuration(today, '21d') };
+    return d;
+  });
+  const limitReached = !existing && activeCount >= FREE_ACTIVE_LIMIT;
   const [touched, setTouched] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [stepInput, setStepInput] = useState('');
@@ -75,8 +88,19 @@ export default function EditorScreen() {
 
   const save = () => {
     if (errors.length) { setShowErrors(true); return; }
+    if (limitReached) {
+      track('free_limit_reached', { active: activeCount });
+      Alert.alert(t('settings.freeLimitTitle', { limit: FREE_ACTIVE_LIMIT }), t('settings.freeLimitBody'), [
+        { text: t('editor.cancel'), style: 'cancel' },
+        { text: t('settings.freeLimitArchive'), onPress: () => { router.back(); router.push('/(tabs)/settings'); } },
+        { text: t('settings.freeLimitPro'), onPress: () => { router.back(); router.push('/(tabs)/settings'); } },
+      ]);
+      return;
+    }
     appStore.upsertActivity({ ...draft, name: draft.name.trim(), unit: draft.unit?.trim() || null, minimal: draft.minimal?.trim() || null, reminder: draft.reminder || null });
-    router.back();
+    if (!existing) track('create_activity', { type: draft.freq.type, anchor: draft.freq.anchor ?? 'calendar', first_activity: firstParam === '1' });
+    if (firstParam === '1') router.replace('/(tabs)/month');
+    else router.back();
   };
   const cancel = () => {
     if (!touched) return router.back();
