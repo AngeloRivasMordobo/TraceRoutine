@@ -118,3 +118,19 @@ export function validateRule(rule: FrequencyRule): RuleError[] {
   if (rule.type === 'perWeek' && ((rule.times ?? 1) < 1 || (rule.times ?? 1) > 7)) errors.push('perWeek.range');
   return errors;
 }
+
+/**
+ * One letter per cycle step for grid cells. First letter, or the second one when it
+ * collides with an earlier step (Push / Pull / Legs → P / U / L, as in the design).
+ */
+export function cycleLetters(steps: CycleStep[]): string[] {
+  const used = new Set<string>();
+  return steps.map((s) => {
+    if (s.rest) return '';
+    const chars = s.label.replace(/\s+/g, '').toUpperCase();
+    let letter = chars.charAt(0);
+    for (let i = 1; used.has(letter) && i < chars.length; i++) letter = chars.charAt(i);
+    used.add(letter);
+    return letter;
+  });
+}

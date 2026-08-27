@@ -6,6 +6,7 @@ import {
   applyPreset,
   cellState,
   consistency,
+  cycleLetters,
   cycleStep,
   daysBetween,
   daysInMonth,
@@ -361,6 +362,11 @@ describe('presets and descriptions (TR-29)', () => {
     expect(describeFrequency({ type: 'everyN', n: 1 })).toEqual({ kind: 'daily' });
     expect(describeFrequency({ type: 'everyN', n: 3, anchor: 'relative' })).toEqual({ kind: 'everyN', n: 3, relative: true });
     expect(describeFrequency({ type: 'cycle', steps: PUL, anchor: 'relative' })).toEqual({ kind: 'cycle', steps: PUL, relative: true });
+  });
+  it('gives cycle steps distinct letters (Push / Pull / Legs → P / U / L)', () => {
+    expect(cycleLetters(PUL ?? [])).toEqual(['P', 'U', 'L', '']);
+    expect(cycleLetters([{ label: 'Empuje' }, { label: 'Jalón' }, { label: 'Pierna' }, { label: 'Descanso', rest: true }])).toEqual(['E', 'J', 'P', '']);
+    expect(cycleLetters([{ label: 'A' }, { label: 'A' }])).toEqual(['A', 'A']);
   });
   it('validates editor rules', () => {
     expect(validateRule({ type: 'weekdays', days: [] })).toEqual(['weekdays.empty']);

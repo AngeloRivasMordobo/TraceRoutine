@@ -1,8 +1,8 @@
 /**
- * Sample data for Wave 1 (the database is wired in Wave 2). Dates are relative to
- * today so the demo always looks alive. Deterministic: no randomness.
+ * Sample data, seeded only in development on an empty database so the demo
+ * looks alive. Dates are relative to today. Deterministic: no randomness.
  */
-import { addDays, isBefore, isDue, type Activity, type DateKey, type LogState } from '../engine';
+import { addDays, isBefore, isDue, type Activity, type DateKey, type Log } from '../engine';
 
 export function sampleActivities(today: DateKey, lang: 'es' | 'en'): Activity[] {
   const es = lang === 'es';
@@ -32,19 +32,22 @@ export function sampleActivities(today: DateKey, lang: 'es' | 'en'): Activity[] 
   ];
 }
 
-/** Seeds past logs: mostly done, one minimum and a couple of gaps per activity. Keys are `${id}|${date}`. */
-export function sampleLogs(activities: Activity[], today: DateKey): Record<string, LogState> {
-  const map: Record<string, LogState> = {};
-  const L = (id: string, d: DateKey) => map[`${id}|${d}`] ?? null;
+/** Past logs: mostly done, one minimum every fifth time and a miss every seventh. */
+export function sampleLogs(activities: Activity[], today: DateKey): Log[] {
+  const out: Log[] = [];
+  const map = new Map<string, Log['state']>();
+  const L = (id: string, d: DateKey) => map.get(`${id}|${d}`) ?? null;
   for (const a of activities) {
     let i = 0;
     for (let d = a.start; isBefore(d, today); d = addDays(d, 1)) {
       if (!isDue(a, d, L)) continue;
       i++;
-      if (a.freq.type === 'perWeek' && i % 2 === 0) continue; // flexible: every other available day
-      if (i % 7 === 0) continue; // a miss every seventh time
-      map[`${a.id}|${d}`] = i % 5 === 0 ? 'min' : 'done';
+      if (a.freq.type === 'perWeek' && i % 2 === 0) continue;
+      if (i % 7 === 0) continue;
+      const state = i % 5 === 0 ? 'min' : 'done';
+      map.set(`${a.id}|${d}`, state);
+      out.push({ activityId: a.id, date: d, state, value: a.record === 'amount' ? 12 + (i % 4) * 5 : null });
     }
   }
-  return map;
+  return out;
 }

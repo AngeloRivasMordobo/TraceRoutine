@@ -39,6 +39,15 @@ cellState(activity, date, today, lookup);         // done | min | skip | pending
 
 "Today" is always passed in explicitly, so the engine is testable and the widget (v1.1) can reuse it unchanged.
 
+## Wave 2 status
+
+- [x] TR-31 … TR-38 Activity editor: fields, minimum, presets, 5 frequency types, calendar vs. since-last-time cards with live examples, month preview from the engine, dates with duration shortcuts, reminder, inline validation, edit/archive/delete
+- [x] TR-39 … TR-47 Today: pending-first order, tap = done, long-press = minimum, swipe left = skip with reason, value sheet for minutes/amounts, gesture hint, contextual subtitles, Free day + Coming up, accessible menu and actions
+- [x] TR-48 … TR-54 Month grid: days down / activities across, sticky header with icon + % + name, 9 cell states (style A), today row, month navigation, edit the past by tapping, long-press full edit, cycle letters (P/U/L) and projection, overall consistency, header opens the editor
+- [x] TR-72 Logo (direction "Trace"): app icon, Android adaptive + monochrome, splash, favicon, SVG sources in `/brand`
+- [x] Persistence: SQLite on device (memory on web), write-through store, dev-only sample seed
+- [ ] Device review on iOS and Android; native date/time pickers (text inputs for now); Inter font loading
+
 ## Wave 1 status
 
 - [x] TR-14 Expo project (SDK 57, TypeScript strict, expo-router)

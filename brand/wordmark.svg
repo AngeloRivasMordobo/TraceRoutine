@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 120" width="640" height="120">
+  <!-- TraceRoutine wordmark (design 1k): the "o" in Routine is a completed cell. Set in Inter Medium. -->
+  <style>text{font-family:Inter,system-ui,sans-serif;font-weight:500;font-size:84px;letter-spacing:-2px;fill:#e9e9ed}</style>
+  <text x="8" y="88">TraceR</text>
+  <rect x="312" y="30" width="56" height="56" rx="14" fill="#9184d9"/>
+  <text x="380" y="88">utine</text>
+</svg>
