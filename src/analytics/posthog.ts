@@ -14,7 +14,7 @@ const json = (props?: Props): Record<string, string | number | boolean | null> |
 
 export function initPostHog(): PostHog | null {
   const key = process.env.EXPO_PUBLIC_POSTHOG_KEY;
-  const host = process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://eu.i.posthog.com';
+  const host = process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com';
   if (!key || client) return client;
   client = new PostHog(key, {
     host,
