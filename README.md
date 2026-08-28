@@ -14,6 +14,8 @@ npm run typecheck       # tsc --noEmit
 npm run lint            # expo lint
 ```
 
+Analytics and crash reporting are off until you create `.env` from `.env.example` (PostHog key + host, Sentry DSN, org and project). `SENTRY_AUTH_TOKEN` goes to EAS as a secret, never in the app. Sentry adds native code: rebuild the dev client after enabling it.
+
 ## Layout
 
 ```
@@ -45,7 +47,8 @@ cellState(activity, date, today, lookup);         // done | min | skip | pending
 - [x] TR-58 … TR-62 Reminders: pure planner (one notification per due day, morning summary folding, today skipped when logged, projection for relative rules, past times dropped) + native service (permission pre-prompt, Android channel, Done/Minimum actions that log without opening the app, idempotent rescheduling on every store change and on foreground). Pending: BOOT_COMPLETED / background task, device verification
 - [x] TR-63 … TR-69 Settings: language, theme (dark/light/auto), reminder permission state, morning summary and time, export CSV (UTF-8 BOM), JSON backup and import (replace/merge with preview), archived list with unarchive, delete all with double confirmation (typed DELETE), free limit of 5 with counter and guard in the editor, Pro section with interest capture, analytics opt-out, feedback email, version
 - [x] TR-70, TR-71 Onboarding in two steps illustrated with real cells, language switch, skip; guided first activity with 4 profile suggestions that prefill the editor (lands on Month)
-- [x] TR-73 empty states; TR-74 `docs/glossary.md`; TR-77 analytics abstraction with named events and opt-out (PostHog/Sentry sinks pending keys); TR-76 three Maestro flows as a starting point
+- [x] TR-73 empty states; TR-74 `docs/glossary.md`; TR-76 three Maestro flows as a starting point
+- [x] TR-77 analytics and crash reporting: PostHog sink (named events only, whitelisted properties, anonymous user properties) and Sentry (crashes only, no PII, no tracing), both behind the same opt-out; configured through `.env` (see `.env.example`), source maps through `metro.config.js` + `app.config.js`. Without keys the app sends nothing.
 - [ ] TR-75 accessibility audit on device; TR-78 performance measurements; native date/time pickers
 
 ## Wave 2 status

@@ -3,19 +3,27 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import 'react-native-reanimated';
+import { initPostHog } from '@/src/analytics/posthog';
+import { initSentry, wrapRoot } from '@/src/analytics/sentry';
+import { watchStoreForAnalytics } from '@/src/analytics/watch';
 import { configureNotifications, rescheduleReminders, watchStoreForReminders } from '@/src/reminders/service';
 import { appStore, bootstrapStore, useAppStore } from '@/src/store/appStore';
 import { ThemeProvider, useTheme } from '@/src/ui/theme';
 
 export { ErrorBoundary } from 'expo-router';
 
-export default function RootLayout() {
+initSentry();
+
+function RootLayout() {
   const themeMode = useAppStore((s) => s.themeMode);
   const ready = useAppStore((s) => s.ready);
 
   useEffect(() => {
     let stopWatching: (() => void) | undefined;
+    let stopAnalytics: (() => void) | undefined;
     void bootstrapStore().then(async () => {
+      initPostHog(); // no-op without EXPO_PUBLIC_POSTHOG_KEY; the store already applied the opt-out
+      stopAnalytics = watchStoreForAnalytics();
       await configureNotifications();
       await rescheduleReminders();
       stopWatching = watchStoreForReminders();
@@ -24,7 +32,7 @@ export default function RootLayout() {
     const sub = AppState.addEventListener('change', (st) => {
       if (st === 'active') { appStore.refreshToday(); void rescheduleReminders(); }
     });
-    return () => { sub.remove(); stopWatching?.(); };
+    return () => { sub.remove(); stopWatching?.(); stopAnalytics?.(); };
   }, []);
 
   if (!ready) return null; // splash stays visible until the store has loaded
@@ -54,3 +62,5 @@ function RootStack() {
     </>
   );
 }
+
+export default wrapRoot(RootLayout);
