@@ -1,6 +1,8 @@
 /**
  * Native side of reminders (TR-58 … TR-62): permissions, categories with actions,
  * idempotent scheduling from the planner, and the response listener that records logs.
+ * expo-notifications has no scheduled local notifications on web, so every entry point
+ * here is inert there: permissions read as denied and scheduling is skipped.
  */
 import * as Notifications from 'expo-notifications';
 import { Linking, Platform } from 'react-native';
@@ -14,17 +16,20 @@ export type PermissionState = 'granted' | 'denied' | 'undetermined';
 const CATEGORY = 'activity';
 
 export async function getPermissionState(): Promise<PermissionState> {
+  if (Platform.OS === 'web') return 'denied';
   const p = await Notifications.getPermissionsAsync();
   if (p.granted || p.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) return 'granted';
   return p.canAskAgain ? 'undetermined' : 'denied';
 }
 
 export async function requestPermission(): Promise<PermissionState> {
+  if (Platform.OS === 'web') return 'denied';
   const p = await Notifications.requestPermissionsAsync();
   return p.granted ? 'granted' : p.canAskAgain ? 'undetermined' : 'denied';
 }
 
 export function openSystemSettings(): Promise<void> {
+  if (Platform.OS === 'web') return Promise.resolve();
   return Linking.openSettings();
 }
 
@@ -32,6 +37,7 @@ let configured = false;
 export async function configureNotifications(): Promise<void> {
   if (configured) return;
   configured = true;
+  if (Platform.OS === 'web') return;
   Notifications.setNotificationHandler({
     handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
   });

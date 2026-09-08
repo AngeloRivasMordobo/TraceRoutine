@@ -4,7 +4,8 @@
  */
 import { Platform } from 'react-native';
 import type { Activity, DateKey, Log, LogState } from '../engine';
-import { ExpoSqliteDriver, migrate } from './driver';
+import { migrate } from './driver';
+import { ExpoSqliteDriver } from './sqliteDriver';
 import { ActivityRepository, LogRepository, SettingsRepository } from './repositories';
 
 export interface Snapshot {

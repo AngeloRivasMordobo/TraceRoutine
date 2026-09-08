@@ -9,11 +9,12 @@ import { formatShortDate, freqLabel, LANGS, t, type Lang } from '@/src/i18n';
 import { getPermissionState, openSystemSettings, requestPermission, rescheduleReminders, type PermissionState } from '@/src/reminders/service';
 import { appStore, useAppStore } from '@/src/store/appStore';
 import { FREE_ACTIVE_LIMIT } from '@/src/store/limits';
-import { Button, Card, Eyebrow, Seg } from '@/src/ui/components';
-import { Help, Sheet, inputStyle } from '@/src/ui/controls';
-import { ActivityIcon } from '@/src/ui/icons';
+import { Button, Kicker, Title } from '@/src/ui/components';
+import { Sheet, inputStyle } from '@/src/ui/controls';
+import { ActivityIcon, UIIcon, type UIIconKey } from '@/src/ui/icons';
+import { Logo } from '@/src/ui/Logo';
 import { useTheme, type ThemeMode } from '@/src/ui/theme';
-import { activityColors, font, radius, space, TOUCH, type ActivityColor } from '@/src/ui/tokens';
+import { accentRamp, activityColor, font, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -80,74 +81,89 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: th.bg }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Eyebrow>{t('tabs.settings')}</Eyebrow>
-        <Text style={[styles.display, { color: th.text }]}>{t('settings.title')}</Text>
+        <Kicker>{t('tabs.settings')}</Kicker>
+        <Title>{t('settings.title')}</Title>
 
-        <Eyebrow>{t('settings.general')}</Eyebrow>
-        <Card>
-          <Text style={[styles.label, { color: th.muted }]}>{t('settings.language')}</Text>
-          <Seg<Lang> options={LANGS.map((l) => ({ value: l, label: l.toUpperCase() }))} value={lang} onChange={(l) => { appStore.setLang(l); track('language', { lang: l }); }} />
-          <Text style={[styles.label, { color: th.muted, marginTop: space[6] }]}>{t('settings.theme')}</Text>
-          <Seg<ThemeMode> options={[{ value: 'dark', label: t('settings.dark') }, { value: 'light', label: t('settings.light') }, { value: 'auto', label: t('settings.auto') }]} value={themeMode} onChange={(v) => { appStore.setThemeMode(v); track('theme', { theme: v }); }} />
-        </Card>
-
-        <Eyebrow>{t('settings.reminders')}</Eyebrow>
-        <Card>
-          <Row label={t(`reminders.permission${perm.charAt(0).toUpperCase()}${perm.slice(1)}`)}>
-            {perm === 'granted' ? null : perm === 'denied' ? <Button label={t('reminders.openSystemSettings')} variant="secondary" onPress={openSystemSettings} /> : <Button label={t('reminders.enable')} onPress={enableReminders} />}
+        {/* The design lists settings as flat rows with a leading icon and a hairline between them. */}
+        <View style={{ marginTop: space[8] }}>
+          <Row icon="globe" label={t('settings.language')}>
+            <PillSeg<Lang>
+              options={LANGS.map((l) => ({ value: l, label: l.toUpperCase() }))}
+              value={lang}
+              onChange={(l) => { appStore.setLang(l); track('language', { lang: l }); }}
+            />
           </Row>
-          <Row label={t('settings.morningSummary')} help={t('settings.morningSummaryHelp')}>
+          <Row icon="theme" label={t('settings.theme')}>
+            <PillSeg<ThemeMode>
+              options={[{ value: 'dark', label: t('settings.dark') }, { value: 'light', label: t('settings.light') }, { value: 'auto', label: t('settings.auto') }]}
+              value={themeMode}
+              onChange={(v) => { appStore.setThemeMode(v); track('theme', { theme: v }); }}
+            />
+          </Row>
+          <Row icon="bell" label={t(`reminders.permission${perm.charAt(0).toUpperCase()}${perm.slice(1)}`)}>
+            {perm === 'granted' ? null : perm === 'denied'
+              ? <Button label={t('reminders.openSystemSettings')} variant="secondary" onPress={openSystemSettings} />
+              : <Button label={t('reminders.enable')} onPress={enableReminders} />}
+          </Row>
+          <Row icon="bell" label={t('settings.morningSummary')} help={t('settings.morningSummaryHelp')}>
             <Switch value={morningSummary} onValueChange={appStore.setMorningSummary} trackColor={{ true: th.accent, false: th.line }} thumbColor={th.text} />
           </Row>
           {morningSummary && (
-            <Row label={t('settings.morningTime')}>
+            <Row icon="bell" label={t('settings.morningTime')}>
               <TextInput value={timeDraft} onChangeText={setTimeDraft} onBlur={commitTime} onSubmitEditing={commitTime} keyboardType="numbers-and-punctuation" style={[inputStyle(th), { width: 88, textAlign: 'center' }]} accessibilityLabel={t('settings.morningTime')} />
             </Row>
           )}
-        </Card>
-
-        <Eyebrow>{t('settings.data')}</Eyebrow>
-        <Card>
-          <Text style={[styles.count, { color: th.muted }]}>{t('settings.activeCount', { count: activeCount, limit: FREE_ACTIVE_LIMIT })}</Text>
-          <Button label={t('settings.exportCsv')} variant="secondary" onPress={() => void exportCsv()} />
-          <Help>{t('settings.exportCsvHelp')}</Help>
-          <View style={{ height: space[4] }} />
-          <Button label={t('settings.backupExport')} variant="secondary" onPress={() => void exportBackup()} />
-          <View style={{ height: space[3] }} />
-          <Button label={t('settings.backupImport')} variant="secondary" onPress={() => void importBackup()} />
-          <Help>{t('settings.backupHelp')}</Help>
-          <Text style={[styles.label, { color: th.muted, marginTop: space[6] }]}>{t('settings.archivedTitle')}</Text>
-          {archived.length === 0 ? (
-            <Text style={{ color: th.faint }}>{t('settings.archivedEmpty')}</Text>
-          ) : (
-            archived.map((a) => (
-              <View key={a.id} style={[styles.archivedRow, { borderBottomColor: th.line }]}>
-                <ActivityIcon name={a.icon} color={activityColors[a.color as ActivityColor] ?? th.accent} size={18} />
-                <Text style={[styles.archivedName, { color: th.text }]} numberOfLines={1}>{a.name}</Text>
-                <Pressable onPress={() => appStore.setArchived(a.id, false)} accessibilityRole="button" hitSlop={8}><Text style={{ color: th.accent, fontWeight: font.weight.medium }}>{t('settings.unarchive')}</Text></Pressable>
-              </View>
-            ))
-          )}
-          <View style={{ height: space[6] }} />
-          <Pressable onPress={() => setDeleteStep(1)} accessibilityRole="button" style={styles.danger}><Text style={{ color: th.danger, fontWeight: font.weight.medium }}>{t('settings.deleteAll')}</Text></Pressable>
-        </Card>
-
-        <Eyebrow>{t('settings.pro')}</Eyebrow>
-        <Card>
-          <Text style={{ color: th.text, lineHeight: 20 }}>{t('settings.proBody')}</Text>
-          <Text style={[styles.count, { color: th.muted, marginTop: space[3] }]}>{t('settings.freeLimit', { limit: FREE_ACTIVE_LIMIT, left: Math.max(0, FREE_ACTIVE_LIMIT - activeCount) })}</Text>
-          <View style={{ height: space[4] }} />
-          <Button label={proInterest ? t('settings.proNotified') : t('settings.notifyMe')} variant={proInterest ? 'ghost' : 'primary'} disabled={proInterest} onPress={() => { appStore.markProInterest(); track('pro_interest'); }} />
-        </Card>
-
-        <Eyebrow>{t('settings.about')}</Eyebrow>
-        <Card>
-          <Row label={t('settings.analytics')} help={t('settings.analyticsHelp')}>
+          <ActionRow icon="download" label={t('settings.exportCsv')} onPress={() => void exportCsv()} />
+          <ActionRow icon="download" label={t('settings.backupExport')} onPress={() => void exportBackup()} />
+          <ActionRow icon="download" label={t('settings.backupImport')} onPress={() => void importBackup()} />
+          <Row icon="info" label={t('settings.analytics')} help={t('settings.analyticsHelp')}>
             <Switch value={!analyticsOptOut} onValueChange={(on) => appStore.setAnalyticsOptOut(!on)} trackColor={{ true: th.accent, false: th.line }} thumbColor={th.text} />
           </Row>
-          <Button label={t('settings.feedback')} variant="secondary" onPress={() => void Linking.openURL(`mailto:hola@traceroutine.app?subject=${encodeURIComponent(t('settings.feedbackSubject'))}&body=${encodeURIComponent(`\n\n— v${version} · ${Constants.platform ? Object.keys(Constants.platform)[0] : ''}`)}`)} />
-          <Text style={[styles.foot, { color: th.faint }]}>{`${t('app.name')} · ${t('settings.version', { version })} · ${t('settings.localData')}`}</Text>
-        </Card>
+          <ActionRow
+            icon="info"
+            label={t('settings.feedback')}
+            onPress={() => void Linking.openURL(`mailto:hola@traceroutine.app?subject=${encodeURIComponent(t('settings.feedbackSubject'))}&body=${encodeURIComponent(`\n\n— v${version} · ${Constants.platform ? Object.keys(Constants.platform)[0] : ''}`)}`)}
+          />
+          <ActionRow icon="trash" label={t('settings.deleteAll')} danger onPress={() => setDeleteStep(1)} />
+        </View>
+
+        {archived.length > 0 && (
+          <>
+            <Text style={[styles.groupLabel, { color: th.muted }]}>{t('settings.archivedTitle')}</Text>
+            {archived.map((a) => (
+              <View key={a.id} style={[styles.archivedRow, { borderBottomColor: th.surface2 }]}>
+                <ActivityIcon name={a.icon} color={activityColor(a.color)} size={16} />
+                <Text style={[styles.archivedName, { color: th.text }]} numberOfLines={1}>{a.name}</Text>
+                <Pressable onPress={() => appStore.setArchived(a.id, false)} accessibilityRole="button" hitSlop={8}>
+                  <Text style={{ color: th.accent, fontFamily: font.family, fontSize: font.size.sm }}>{t('settings.unarchive')}</Text>
+                </Pressable>
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* The Pro card: accent hairline over a fading tint, with the brand mark. */}
+        <View style={[styles.pro, { borderColor: accentRamp[800], backgroundColor: rgba(accentRamp[900], 0.55) }]}>
+          <View style={styles.proHead}>
+            <Logo size={8} gap={2.5} />
+            <Text style={[styles.proName, { color: th.text }]}>{`${t('app.name')} Pro`}</Text>
+          </View>
+          <Text style={[styles.proBody, { color: th.muted }]}>{t('settings.proBody')}</Text>
+          <Text style={[styles.proNote, { color: accentRamp[300] }]}>
+            {t('settings.freeLimit', { limit: FREE_ACTIVE_LIMIT, left: Math.max(0, FREE_ACTIVE_LIMIT - activeCount) })}
+          </Text>
+          <Button
+            label={proInterest ? t('settings.proNotified') : t('settings.notifyMe')}
+            variant={proInterest ? 'ghost' : 'primary'}
+            disabled={proInterest}
+            onPress={() => { appStore.markProInterest(); track('pro_interest'); }}
+            style={{ marginTop: space[4] }}
+          />
+        </View>
+
+        <Text style={[styles.foot, { color: th.faint }]}>
+          {`${t('app.name')} ${version} · ${t('settings.localData')}`}
+        </Text>
         <View style={{ height: space[12] }} />
       </ScrollView>
 
@@ -159,7 +175,7 @@ export default function SettingsScreen() {
       <Sheet visible={deleteStep === 2} onClose={() => { setDeleteStep(0); setTyped(''); }} title={t('settings.deleteType')}>
         <TextInput value={typed} onChangeText={setTyped} autoCapitalize="characters" autoCorrect={false} placeholder={t('settings.deleteWord')} placeholderTextColor={th.faint} style={inputStyle(th)} />
         <Pressable disabled={typed.trim().toUpperCase() !== t('settings.deleteWord')} onPress={() => void deleteAll()} accessibilityRole="button" style={[styles.deleteBtn, { borderColor: th.danger, opacity: typed.trim().toUpperCase() === t('settings.deleteWord') ? 1 : 0.4 }]}>
-          <Text style={{ color: th.danger, fontWeight: font.weight.semibold }}>{t('settings.deleteAll')}</Text>
+          <Text style={{ fontFamily: font.semibold, color: th.danger }}>{t('settings.deleteAll')}</Text>
         </Pressable>
       </Sheet>
       {toast && <View style={[styles.toast, { backgroundColor: th.surface2, borderColor: th.line }]}><Text style={{ color: th.text }}>{toast}</Text></View>}
@@ -167,13 +183,52 @@ export default function SettingsScreen() {
   );
 }
 
-function Row({ label, help, children }: { label: string; help?: string; children: React.ReactNode }) {
+/** The design's pill toggle: one rounded outline, the active option tinted from the accent ramp. */
+function PillSeg<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   const th = useTheme();
   return (
-    <View style={styles.row}>
+    <View style={[styles.pill, { borderColor: th.line }]} accessibilityRole="radiogroup">
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            onPress={() => onChange(o.value)}
+            style={[styles.pillOpt, on && { backgroundColor: accentRamp[800] }]}>
+            <Text style={[styles.pillLabel, { color: on ? accentRamp[200] : th.muted }]}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** A settings row that performs an action, with the design's trailing caret. */
+function ActionRow({ icon, label, onPress, danger }: { icon: UIIconKey; label: string; onPress: () => void; danger?: boolean }) {
+  const th = useTheme();
+  const tint = danger ? th.danger : th.text;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, { borderBottomColor: th.surface2, opacity: pressed ? 0.6 : 1 }]}>
+      <UIIcon name={icon} color={danger ? th.danger : th.muted} size={16} />
+      <Text style={[styles.rowLabel, { color: tint, flex: 1 }]}>{label}</Text>
+      {!danger && <UIIcon name="forward" color={th.faint} size={13} />}
+    </Pressable>
+  );
+}
+
+function Row({ icon, label, help, children }: { icon: UIIconKey; label: string; help?: string; children: React.ReactNode }) {
+  const th = useTheme();
+  return (
+    <View style={[styles.row, { borderBottomColor: th.surface2 }]}>
+      <UIIcon name={icon} color={th.muted} size={16} />
       <View style={{ flex: 1 }}>
-        <Text style={{ color: th.text, fontFamily: font.family, fontSize: font.size.md }}>{label}</Text>
-        {!!help && <Text style={{ color: th.muted, fontSize: font.size.sm, marginTop: 2 }}>{help}</Text>}
+        <Text style={[styles.rowLabel, { color: th.text }]}>{label}</Text>
+        {!!help && <Text style={[styles.rowHelp, { color: th.muted }]}>{help}</Text>}
       </View>
       {children}
     </View>
@@ -183,14 +238,21 @@ function Row({ label, help, children }: { label: string; help?: string; children
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: space[6] },
-  display: { fontFamily: font.family, fontSize: font.size.display, fontWeight: font.weight.semibold, letterSpacing: font.tracking.tight, marginTop: space[2] },
-  label: { fontFamily: font.family, fontSize: font.size.sm, fontWeight: font.weight.medium, marginBottom: space[3] },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space[4], minHeight: TOUCH, paddingVertical: space[2] },
-  count: { fontFamily: font.family, fontSize: font.size.sm, marginBottom: space[4] },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space[4], minHeight: TOUCH, paddingVertical: 13, borderBottomWidth: 1 },
+  rowLabel: { fontFamily: font.family, fontSize: 13 },
+  rowHelp: { fontFamily: font.family, fontSize: 10.5, marginTop: 2 },
+  groupLabel: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: font.tracking.eyebrow, textTransform: 'uppercase', marginTop: space[8], marginBottom: space[3] },
+  pill: { flexDirection: 'row', borderWidth: 1, borderRadius: radius.pill, overflow: 'hidden' },
+  pillOpt: { paddingHorizontal: 13, paddingVertical: 5, minHeight: 30, alignItems: 'center', justifyContent: 'center' },
+  pillLabel: { fontFamily: font.medium, fontSize: font.size.xs },
+  pro: { borderWidth: 1, borderRadius: radius.lg, padding: space[6], marginTop: space[10] },
+  proHead: { flexDirection: 'row', alignItems: 'center', gap: space[3], marginBottom: space[2] },
+  proName: { fontFamily: font.medium, fontSize: 13 },
+  proBody: { fontFamily: font.family, fontSize: 11, lineHeight: 18 },
+  proNote: { fontFamily: font.family, fontSize: 10, marginTop: space[3] },
   archivedRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3], borderBottomWidth: 1 },
-  archivedName: { flex: 1, fontFamily: font.family, fontSize: font.size.md },
-  danger: { minHeight: TOUCH, alignItems: 'center', justifyContent: 'center' },
+  archivedName: { flex: 1, fontFamily: font.family, fontSize: font.size.sm },
   deleteBtn: { minHeight: TOUCH, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: radius.md, marginTop: space[4] },
-  foot: { marginTop: space[6], fontSize: font.size.xs, fontFamily: font.family },
+  foot: { marginTop: space[10], fontSize: 10, fontFamily: font.family, textAlign: 'center' },
   toast: { position: 'absolute', left: space[6], right: space[6], bottom: space[8], padding: space[4], borderRadius: radius.md, borderWidth: 1 },
 });

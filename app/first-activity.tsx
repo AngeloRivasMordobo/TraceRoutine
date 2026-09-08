@@ -55,10 +55,10 @@ export default function FirstActivityScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flex: 1, padding: space[6] },
-  display: { fontFamily: font.family, fontSize: font.size.display, fontWeight: font.weight.semibold, letterSpacing: font.tracking.tight, marginTop: space[2] },
+  display: { fontFamily: font.semibold, fontSize: font.size.display, letterSpacing: font.tracking.tight, marginTop: space[2] },
   lead: { fontFamily: font.family, fontSize: font.size.md, marginTop: space[3] },
   opt: { flexDirection: 'row', alignItems: 'center', gap: space[4], minHeight: TOUCH + 12, padding: space[4], borderRadius: radius.md, borderWidth: 1 },
   icon: { width: TOUCH, height: TOUCH, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  optText: { fontFamily: font.family, fontSize: font.size.md, fontWeight: font.weight.medium },
+  optText: { fontFamily: font.medium, fontSize: font.size.md },
   skip: { alignItems: 'center', paddingVertical: space[4] },
 });

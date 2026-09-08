@@ -30,7 +30,7 @@
     "nextIs": "El siguiente es {name}, {when}.",
     "comingUp": "Próximas",
     "doneOf": "{done} de {total} hechas",
-    "hint": "Toca el cuadro para marcar · mantén presionado para la mínima · desliza a la izquierda para omitir",
+    "hint": "Toca el círculo para completar · mantén presionado para la mínima · desliza para omitir",
     "minPrefix": "mín: {text}",
     "skippedToday": "Omitida hoy · toca el cuadro para deshacer",
     "thisWeek": "{done} de {times} esta semana · tú eliges cuándo",
@@ -270,14 +270,20 @@
     "start": "Empezar",
     "welcome": "Bienvenido",
     "language": "Idioma",
-    "step": "Paso {n} de 2",
+    "step": "Paso {n} de 3",
     "normalDay": "Día normal",
     "badDay": "Día malo",
     "normalExample": "Correr 5 km",
     "badExample": "Caminar 10 min · cuenta como cumplida",
     "everyOther": "Día por medio",
     "mwf": "Lun · Mié · Vie",
-    "threePerWeek": "3 veces por semana"
+    "threePerWeek": "3 veces por semana",
+    "cycles": "Ciclos A/B/descanso",
+    "exTraining": "entrenar",
+    "exPhysio": "fisioterapia",
+    "exReading": "leer",
+    "exCycles": "empuje·jalón·pierna",
+    "freqTitle": "No todo es diario"
   },
   "dates": {
     "weekdays": [

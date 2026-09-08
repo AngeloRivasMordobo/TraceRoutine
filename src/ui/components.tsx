@@ -3,8 +3,9 @@
  * Every color comes from the theme; every size from the tokens.
  */
 import { Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useTheme } from './theme';
-import { font, radius, rgba, space, TOUCH } from './tokens';
+import { accentRamp, font, radius, rgba, space, TOUCH } from './tokens';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 
@@ -50,9 +51,78 @@ export function Tag({ label, tone = 'neutral' }: { label: string; tone?: 'accent
   );
 }
 
+/** A section label inside a screen — muted, as the design draws its group labels. */
 export function Eyebrow({ children }: { children: string }) {
   const th = useTheme();
   return <Text style={[styles.eyebrow, { color: th.muted }]}>{children.toUpperCase()}</Text>;
+}
+
+/** The screen kicker above each title: accent, 10.5 px, wide tracking. */
+export function Kicker({ children }: { children: string }) {
+  return <Text style={[styles.kicker, { color: accentRamp[400] }]}>{children.toUpperCase()}</Text>;
+}
+
+/** The screen title under a Kicker. */
+export function Title({ children }: { children: string }) {
+  const th = useTheme();
+  return <Text style={[styles.title, { color: th.text }]}>{children}</Text>;
+}
+
+/**
+ * Progress bar. The month's global bar is the accent gradient the design uses;
+ * `solid` gives Today's flat accent fill.
+ */
+export function Bar({ pct, height = 5, solid }: { pct: number; height?: number; solid?: boolean }) {
+  const th = useTheme();
+  const w = Math.max(0, Math.min(100, pct));
+  return (
+    <View style={[styles.barTrack, { backgroundColor: th.surface2, height, borderRadius: height / 2 }]}>
+      <View style={{ width: `${w}%`, height: '100%', borderRadius: height / 2, overflow: 'hidden' }}>
+        {solid ? (
+          <View style={{ flex: 1, backgroundColor: accentRamp[500] }} />
+        ) : (
+          <Svg width="100%" height={height}>
+            <Defs>
+              <LinearGradient id="barFill" x1="0" y1="0" x2="1" y2="0">
+                <Stop offset="0" stopColor={accentRamp[600]} />
+                <Stop offset="1" stopColor={accentRamp[400]} />
+              </LinearGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height={height} fill="url(#barFill)" />
+          </Svg>
+        )}
+      </View>
+    </View>
+  );
+}
+
+/** The consistency donut the design puts on Stats. */
+export function Ring({ pct, size = 104, stroke = 7, children }: { pct: number | null; size?: number; stroke?: number; children?: React.ReactNode }) {
+  const th = useTheme();
+  const r = size / 2 - stroke / 2 - 1;
+  const c = 2 * Math.PI * r;
+  const on = (Math.max(0, Math.min(100, pct ?? 0)) / 100) * c;
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size}>
+        <Circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={th.surface2} strokeWidth={stroke} />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={accentRamp[500]}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${on} ${c - on}`}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={StyleSheet.absoluteFill}>
+        <View style={styles.ringCenter}>{children}</View>
+      </View>
+    </View>
+  );
 }
 
 export function Seg<T extends string>({
@@ -94,12 +164,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonLabel: { fontFamily: font.family, fontSize: font.size.md, fontWeight: font.weight.medium },
+  buttonLabel: { fontFamily: font.medium, fontSize: font.size.md },
   card: { borderRadius: radius.lg, borderWidth: 1, padding: space[6] },
   tag: { alignSelf: 'flex-start', borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: space[3], paddingVertical: space[1] },
-  tagLabel: { fontFamily: font.family, fontSize: font.size.xs, fontWeight: font.weight.medium },
-  eyebrow: { fontFamily: font.family, fontSize: font.size.xs, fontWeight: font.weight.medium, letterSpacing: font.tracking.eyebrow },
+  tagLabel: { fontFamily: font.medium, fontSize: font.size.xs },
+  eyebrow: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: font.tracking.eyebrow },
+  kicker: { fontFamily: font.medium, fontSize: 10.5, letterSpacing: 1.5 },
+  title: { fontFamily: font.medium, fontSize: font.size.xl, letterSpacing: font.tracking.tight, marginTop: 4 },
+  barTrack: { width: '100%', overflow: 'hidden' },
+  ringCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   seg: { flexDirection: 'row', borderWidth: 1, borderRadius: radius.md, overflow: 'hidden' },
   segItem: { flex: 1, minHeight: TOUCH, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space[2] },
-  segLabel: { fontFamily: font.family, fontSize: font.size.sm, fontWeight: font.weight.semibold },
+  segLabel: { fontFamily: font.semibold, fontSize: font.size.sm },
 });

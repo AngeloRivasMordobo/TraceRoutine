@@ -28,12 +28,13 @@ export default function Root({ children }: { children: ReactNode }) {
   );
 }
 
+// The Nocturne grounds, so the page never flashes a colour the app does not use.
 const responsiveBackground = `
 body {
-  background-color: #fff;
+  background-color: #f3f5fe;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #000;
+    background-color: #161826;
   }
 }`;

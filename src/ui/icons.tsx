@@ -1,39 +1,118 @@
 /**
- * Activity icons: native symbols on every platform (SF Symbols on iOS, Material on Android/web).
- * Keys are what gets stored in `Activity.icon`.
+ * Phosphor icons, as the Nocturne readme requires ("Use Phosphor icons throughout")
+ * and as the design canvas draws every screen. `ICONS` keys are what gets stored in
+ * `Activity.icon`; `UI` holds the interface glyphs the design names per screen.
+ * Weight follows the design: regular everywhere, fill for an active nav tab.
  */
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import {
+  ArrowBendUpRightIcon,
+  ArrowsClockwiseIcon,
+  BarbellIcon,
+  BedIcon,
+  BellIcon,
+  BicycleIcon,
+  BookOpenIcon,
+  BrainIcon,
+  BroomIcon,
+  CalendarDotsIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+  ChartLineUpIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  DownloadSimpleIcon,
+  DropIcon,
+  FlowerLotusIcon,
+  ForkKnifeIcon,
+  GearIcon,
+  GlobeIcon,
+  GraduationCapIcon,
+  GuitarIcon,
+  HandTapIcon,
+  HeartIcon,
+  InfoIcon,
+  MoonIcon,
+  PaintBrushIcon,
+  PawPrintIcon,
+  PencilIcon,
+  PersonSimpleRunIcon,
+  PhoneIcon,
+  PillIcon,
+  PlantIcon,
+  PlusIcon,
+  RepeatIcon,
+  ShareNetworkIcon,
+  ShuffleIcon,
+  SquaresFourIcon,
+  StarIcon,
+  TranslateIcon,
+  TrashIcon,
+  type Icon,
+  type IconWeight,
+} from 'phosphor-react-native';
 import type { ColorValue } from 'react-native';
 
-type IconName = SymbolViewProps['name'];
-
+/** Activity icons. The first eight are the design's editor picker, in its order. */
 export const ICONS = {
-  barbell: { ios: 'dumbbell', android: 'fitness_center', web: 'fitness_center' },
-  book: { ios: 'book', android: 'menu_book', web: 'menu_book' },
-  pill: { ios: 'pills', android: 'medication', web: 'medication' },
-  plant: { ios: 'leaf', android: 'local_florist', web: 'local_florist' },
-  water: { ios: 'drop', android: 'water_drop', web: 'water_drop' },
-  guitar: { ios: 'guitars', android: 'music_note', web: 'music_note' },
-  meditate: { ios: 'figure.mind.and.body', android: 'self_improvement', web: 'self_improvement' },
-  run: { ios: 'figure.run', android: 'directions_run', web: 'directions_run' },
-  write: { ios: 'pencil', android: 'edit', web: 'edit' },
-  dog: { ios: 'pawprint', android: 'pets', web: 'pets' },
-  phone: { ios: 'phone', android: 'call', web: 'call' },
-  food: { ios: 'fork.knife', android: 'restaurant', web: 'restaurant' },
-  sleep: { ios: 'bed.double', android: 'bedtime', web: 'bedtime' },
-  clean: { ios: 'sparkles', android: 'cleaning_services', web: 'cleaning_services' },
-  study: { ios: 'graduationcap', android: 'school', web: 'school' },
-  language: { ios: 'globe', android: 'translate', web: 'translate' },
-  bike: { ios: 'bicycle', android: 'directions_bike', web: 'directions_bike' },
-  brain: { ios: 'brain', android: 'psychology', web: 'psychology' },
-  star: { ios: 'star', android: 'star', web: 'star' },
-  heart: { ios: 'heart', android: 'favorite', web: 'favorite' },
-} as const satisfies Record<string, IconName>;
+  paint: PaintBrushIcon,
+  barbell: BarbellIcon,
+  book: BookOpenIcon,
+  meditate: FlowerLotusIcon,
+  water: DropIcon,
+  pill: PillIcon,
+  plant: PlantIcon,
+  guitar: GuitarIcon,
+  run: PersonSimpleRunIcon,
+  write: PencilIcon,
+  dog: PawPrintIcon,
+  phone: PhoneIcon,
+  food: ForkKnifeIcon,
+  sleep: BedIcon,
+  clean: BroomIcon,
+  study: GraduationCapIcon,
+  language: TranslateIcon,
+  bike: BicycleIcon,
+  brain: BrainIcon,
+  star: StarIcon,
+  heart: HeartIcon,
+} as const satisfies Record<string, Icon>;
 
 export type IconKey = keyof typeof ICONS;
 export const ICON_KEYS = Object.keys(ICONS) as IconKey[];
 
-export function ActivityIcon({ name, color, size = 22 }: { name: string; color: ColorValue; size?: number }) {
-  const key = (name in ICONS ? name : 'star') as IconKey;
-  return <SymbolView name={ICONS[key]} tintColor={color} size={size} />;
+/** Interface glyphs, named as the design uses them. */
+export const UI = {
+  today: CheckCircleIcon,
+  month: SquaresFourIcon,
+  stats: ChartLineUpIcon,
+  settings: GearIcon,
+  plus: PlusIcon,
+  check: CheckIcon,
+  share: ShareNetworkIcon,
+  back: CaretLeftIcon,
+  forward: CaretRightIcon,
+  globe: GlobeIcon,
+  theme: MoonIcon,
+  bell: BellIcon,
+  download: DownloadSimpleIcon,
+  trash: TrashIcon,
+  tap: HandTapIcon,
+  info: InfoIcon,
+  skip: ArrowBendUpRightIcon,
+  repeat: RepeatIcon,
+  calendar: CalendarDotsIcon,
+  shuffle: ShuffleIcon,
+  cycle: ArrowsClockwiseIcon,
+} as const satisfies Record<string, Icon>;
+
+export type UIIconKey = keyof typeof UI;
+
+export function ActivityIcon({ name, color, size = 22, weight = 'regular' }: { name: string; color: ColorValue; size?: number; weight?: IconWeight }) {
+  const Glyph = ICONS[(name in ICONS ? name : 'star') as IconKey];
+  return <Glyph color={color as string} size={size} weight={weight} />;
+}
+
+export function UIIcon({ name, color, size = 18, weight = 'regular' }: { name: UIIconKey; color: ColorValue; size?: number; weight?: IconWeight }) {
+  const Glyph = UI[name];
+  return <Glyph color={color as string} size={size} weight={weight} />;
 }

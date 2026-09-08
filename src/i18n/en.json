@@ -30,7 +30,7 @@
     "nextIs": "The next one is {name}, {when}.",
     "comingUp": "Coming up",
     "doneOf": "{done} of {total} done",
-    "hint": "Tap the square to mark it · long-press for the minimum · swipe left to skip",
+    "hint": "Tap the circle to complete · long-press for the minimum · swipe left to skip",
     "minPrefix": "min: {text}",
     "skippedToday": "Skipped today · tap the square to undo",
     "thisWeek": "{done} of {times} this week · you choose when",
@@ -270,14 +270,20 @@
     "start": "Start",
     "welcome": "Welcome",
     "language": "Language",
-    "step": "Step {n} of 2",
+    "step": "Step {n} of 3",
     "normalDay": "Normal day",
     "badDay": "Bad day",
     "normalExample": "Run 5 km",
     "badExample": "Walk 10 min · counts as done",
     "everyOther": "Every other day",
     "mwf": "Mon · Wed · Fri",
-    "threePerWeek": "3 times a week"
+    "threePerWeek": "3 times a week",
+    "cycles": "A/B/rest cycles",
+    "exTraining": "training",
+    "exPhysio": "physio",
+    "exReading": "reading",
+    "exCycles": "push·pull·legs",
+    "freqTitle": "Not everything is daily"
   },
   "dates": {
     "weekdays": [

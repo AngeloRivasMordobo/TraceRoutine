@@ -1,3 +1,5 @@
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -17,6 +19,14 @@ initSentry();
 function RootLayout() {
   const themeMode = useAppStore((s) => s.themeMode);
   const ready = useAppStore((s) => s.ready);
+  // Nocturne is set in Inter. React Native picks a face by family name, so each
+  // weight registers under the name src/ui/tokens.ts asks for.
+  const [fontsLoaded] = useFonts({
+    Inter: Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
+    'Inter-SemiBold': Inter_600SemiBold,
+    'Inter-Bold': Inter_700Bold,
+  });
 
   useEffect(() => {
     let stopWatching: (() => void) | undefined;
@@ -35,7 +45,7 @@ function RootLayout() {
     return () => { sub.remove(); stopWatching?.(); stopAnalytics?.(); };
   }, []);
 
-  if (!ready) return null; // splash stays visible until the store has loaded
+  if (!ready || !fontsLoaded) return null; // splash stays visible until the store and Inter have loaded
   return (
     <ThemeProvider mode={themeMode}>
       <RootStack />

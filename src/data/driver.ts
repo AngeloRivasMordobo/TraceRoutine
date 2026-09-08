@@ -1,8 +1,8 @@
 /**
  * Minimal SQL driver interface so repositories can be tested without a device.
- * `ExpoSqliteDriver` wraps expo-sqlite's async API.
+ * Kept free of expo-sqlite imports so every platform can load it; the concrete
+ * `ExpoSqliteDriver` lives in ./sqliteDriver, which has a web variant.
  */
-import * as SQLite from 'expo-sqlite';
 import { MIGRATIONS } from './schema';
 
 export type Row = Record<string, unknown>;
@@ -12,26 +12,6 @@ export interface SqlDriver {
   run(sql: string, params?: Param[]): Promise<void>;
   all<T extends Row = Row>(sql: string, params?: Param[]): Promise<T[]>;
   exec(sql: string): Promise<void>;
-}
-
-export class ExpoSqliteDriver implements SqlDriver {
-  constructor(private readonly db: SQLite.SQLiteDatabase) {}
-
-  static async open(name = 'traceroutine.db'): Promise<ExpoSqliteDriver> {
-    const db = await SQLite.openDatabaseAsync(name);
-    await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
-    return new ExpoSqliteDriver(db);
-  }
-
-  run(sql: string, params: Param[] = []): Promise<void> {
-    return this.db.runAsync(sql, params).then(() => undefined);
-  }
-  all<T extends Row = Row>(sql: string, params: Param[] = []): Promise<T[]> {
-    return this.db.getAllAsync<T>(sql, params);
-  }
-  exec(sql: string): Promise<void> {
-    return this.db.execAsync(sql);
-  }
 }
 
 /** Applies pending migrations in order. Idempotent. */

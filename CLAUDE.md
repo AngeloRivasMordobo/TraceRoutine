@@ -3,7 +3,7 @@
 Routine tracker with real frequencies (React Native + Expo SDK 57, TypeScript strict, expo-router). Local-first: SQLite, no account. ES/EN. Design system: Nocturne (dark default, accent #9184d9, outlined buttons, 0.7× density).
 
 ## Commands
-- `npm test` (Vitest, 83 tests: engine, i18n, editor/grid models, stats, reminders, backup, analytics) · `npm run typecheck` · `npm run lint`
+- `npm test` (Vitest, 84 tests: engine, i18n, editor/grid models, stats, reminders, backup, analytics) · `npm run typecheck` · `npm run lint`
 - All three must be green before any commit. Definition of done also requires a review on a real iOS and Android device.
 - Dev build: `npx eas build --profile development --platform android|ios` (needed after native changes: notifications, Sentry).
 

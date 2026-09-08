@@ -6,17 +6,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { cycleStep, daysBetween, doneThisWeek, dueToday, isDue, isHit, nextDue, pendingSince, type Activity, type LogLookup } from '@/src/engine';
 import { formatLongDate, formatRelativeDay, formatShortDate, freqLabel, t } from '@/src/i18n';
 import { appStore, useAppStore, useLog, useLogLookup } from '@/src/store/appStore';
-import { Button, Card, Eyebrow } from '@/src/ui/components';
+import { Bar, Button, Card, Eyebrow, Kicker, Title } from '@/src/ui/components';
 import { Sheet } from '@/src/ui/controls';
-import { ActivityIcon } from '@/src/ui/icons';
+import { ActivityIcon, UIIcon } from '@/src/ui/icons';
 import { LogSheet } from '@/src/ui/LogSheet';
 import { useTheme } from '@/src/ui/theme';
-import { activityColors, font, radius, rgba, space, TOUCH, type ActivityColor } from '@/src/ui/tokens';
+import { activityColor, font, mix, neutral, radius, rgba, space } from '@/src/ui/tokens';
 
 type SheetMode = 'skip' | 'value' | 'menu' | null;
 const ORDER = { pending: 0, done: 1, min: 1, skip: 2 } as const;
+/** The design's check is a 40 px circle at the head of the row. */
+const CHECK = 40;
 
-/** Today (TR-39 … TR-47): only what is due, tap = done, long-press = minimum, swipe left = skip. */
+/**
+ * Today (TR-39 … TR-47), laid out as the design canvas's "Lista" default: a large
+ * check at the left of each row so the screen works one-handed, the activity and
+ * its state to its right. Tap = done, long-press = minimum, swipe left = skip
+ * (the canvas draws those last two as chips, noting the real app uses the gestures).
+ */
 export default function TodayScreen() {
   const th = useTheme();
   const today = useAppStore((s) => s.today);
@@ -48,25 +55,26 @@ export default function TodayScreen() {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <View>
-            <Eyebrow>{`${t('today.kicker')} · ${due.length === 1 ? t('today.dueOne') : t('today.dueCount', { n: due.length })}`}</Eyebrow>
-            <Text style={[styles.display, { color: th.text }]}>{formatLongDate(today)}</Text>
+            <View style={styles.headRow}>
+              <View style={{ flex: 1 }}>
+                <Kicker>{`${t('today.kicker')} · ${due.length === 1 ? t('today.dueOne') : t('today.dueCount', { n: due.length })}`}</Kicker>
+                <Title>{formatLongDate(today)}</Title>
+              </View>
+              {due.length > 0 && (
+                <Text style={[styles.count, { color: th.muted }]}>{t('today.doneOf', { done: doneCount, total: due.length })}</Text>
+              )}
+            </View>
             {due.length > 0 ? (
               <>
-                <View style={styles.progressRow}>
-                  <View style={styles.segs}>
-                    {due.map((a) => {
-                      const st = L(a.id, today);
-                      const bg = st === 'done' ? th.accent : st === 'min' ? rgba(th.accent, 0.5) : st === 'skip' ? th.faint : th.surface2;
-                      return <View key={a.id} style={[styles.seg, { backgroundColor: bg, borderColor: th.line }]} />;
-                    })}
-                  </View>
-                  <Text style={[styles.count, { color: th.muted }]}>{t('today.doneOf', { done: doneCount, total: due.length })}</Text>
+                <View style={styles.barWrap}>
+                  <Bar pct={due.length ? (doneCount / due.length) * 100 : 0} height={4} solid />
                 </View>
                 {!hintDismissed && (
-                  <View style={[styles.hint, { borderColor: th.line, backgroundColor: th.surface }]}>
-                    <Text style={[styles.hintText, { color: th.muted }]}>{t('today.hint')}</Text>
+                  <View style={styles.hint}>
+                    <UIIcon name="info" color={th.faint} size={13} />
+                    <Text style={[styles.hintText, { color: th.faint }]}>{t('today.hint')}</Text>
                     <Pressable onPress={appStore.dismissHint} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('today.hintClose')}>
-                      <Text style={{ color: th.muted, fontSize: 18 }}>×</Text>
+                      <Text style={{ color: th.faint, fontSize: 16 }}>×</Text>
                     </Pressable>
                   </View>
                 )}
@@ -80,14 +88,15 @@ export default function TodayScreen() {
             )}
           </View>
         }
-        renderItem={({ item }) => <ActivityCard a={item} today={today} />}
+        renderItem={({ item }) => <ActivityRow a={item} today={today} />}
         ListFooterComponent={
           <View style={{ marginTop: space[8] }}>
             {upcoming.length > 0 && <Eyebrow>{t('today.comingUp')}</Eyebrow>}
             {upcoming.map(({ a, d }) => (
+              // asChild renders a Slot, which rejects an array style on its child.
               <Link key={a.id} href={{ pathname: '/editor', params: { id: a.id } }} asChild>
-                <Pressable style={[styles.upRow, { borderBottomColor: th.line }]} accessibilityRole="button">
-                  <ActivityIcon name={a.icon} color={activityColors[a.color as ActivityColor] ?? th.accent} size={18} />
+                <Pressable style={StyleSheet.flatten([styles.upRow, { borderBottomColor: th.line }])} accessibilityRole="button">
+                  <ActivityIcon name={a.icon} color={activityColor(a.color)} size={16} />
                   <Text style={[styles.upName, { color: th.text }]}>{a.name}</Text>
                   <Text style={[styles.upWhen, { color: th.muted }]}>{formatRelativeDay(d, today)}</Text>
                 </Pressable>
@@ -103,28 +112,30 @@ export default function TodayScreen() {
   );
 }
 
-function subtitle(a: Activity, today: string, L: LogLookup): string {
+/** Frequency, the minimum and any pending run, joined the way the design writes the sub-line. */
+function subtitle(a: Activity, today: string, L: LogLookup, logged: boolean): string {
   const f = a.freq;
-  let s: string;
-  if (f.type === 'cycle') s = t('today.cycleToday', { step: cycleStep(a, today, L)?.label ?? '', n: f.steps?.length ?? 0 });
-  else if (f.type === 'perWeek') s = t('today.thisWeek', { done: doneThisWeek(a, today, L), times: f.times ?? 1 });
-  else s = freqLabel(f);
-  if (a.end) s += ` · ${t('today.until', { date: formatShortDate(a.end) })}`;
+  const bits: string[] = [];
+  if (f.type === 'cycle') bits.push(t('today.cycleToday', { step: cycleStep(a, today, L)?.label ?? '', n: f.steps?.length ?? 0 }));
+  else if (f.type === 'perWeek') bits.push(t('today.thisWeek', { done: doneThisWeek(a, today, L), times: f.times ?? 1 }));
+  else bits.push(freqLabel(f));
+  if (a.end) bits.push(t('today.until', { date: formatShortDate(a.end) }));
   const since = pendingSince(a, today, L);
-  if (since) s += ` · ${daysBetween(since, today) === 1 ? t('today.pendingSinceYesterday') : t('today.pendingSince', { day: Number(since.slice(-2)) })}`;
-  return s;
+  if (since) bits.push(daysBetween(since, today) === 1 ? t('today.pendingSinceYesterday') : t('today.pendingSince', { day: Number(since.slice(-2)) }));
+  if (a.minimal && !logged) bits.push(t('today.minPrefix', { text: a.minimal }));
+  return bits.join(' · ');
 }
 
-function ActivityCard({ a, today }: { a: Activity; today: string }) {
+function ActivityRow({ a, today }: { a: Activity; today: string }) {
   const th = useTheme();
   const router = useRouter();
   const L = useLogLookup();
   const log = useLog(a.id, today);
   const st = log?.state ?? null;
-  const color = activityColors[a.color as ActivityColor] ?? th.accent;
-  const glyph = st === 'done' ? '✓' : st === 'min' ? '½' : st === 'skip' ? '—' : '';
+  const color = activityColor(a.color);
   const [sheet, setSheet] = useState<SheetMode>(null);
   const [tx] = useState(() => new Animated.Value(0));
+  const hit = st === 'done' || st === 'min';
 
   const pan = useMemo(
     () =>
@@ -137,35 +148,36 @@ function ActivityCard({ a, today }: { a: Activity; today: string }) {
         },
         onPanResponderTerminate: () => Animated.spring(tx, { toValue: 0, useNativeDriver: true }).start(),
       }),
-    [tx],
+    [tx, setSheet],
   );
 
   const tap = () => {
-    if (st === 'done') return appStore.setLog(a.id, today, null);
-    if (st === 'skip') return appStore.setLog(a.id, today, null);
+    if (st === 'done' || st === 'skip') return appStore.setLog(a.id, today, null);
     if (a.record !== 'check' && st !== 'min') return setSheet('value');
     appStore.setLog(a.id, today, 'done', { value: log?.value ?? null });
     track('complete', { type: a.freq.type });
   };
   const minimum = () => { appStore.setLog(a.id, today, 'min', { value: log?.value ?? null }); track('minimum', { type: a.freq.type }); };
 
+  // The four check states the canvas draws: filled, bottom half, dashed, outlined.
+  const check =
+    st === 'done' ? { backgroundColor: color, borderColor: color }
+    : st === 'min' ? { backgroundColor: 'transparent', borderColor: color }
+    : st === 'skip' ? { backgroundColor: 'transparent', borderColor: th.faint, borderStyle: 'dashed' as const }
+    : { backgroundColor: 'transparent', borderColor: color };
+  const tag = st ? t(`states.${st}`) : '';
+
   return (
-    <View style={[styles.cardWrap, { backgroundColor: th.surface2 }]}>
+    <View style={[styles.rowWrap, { backgroundColor: th.surface2 }]}>
       <Text style={[styles.skipHint, { color: th.muted }]}>{t('today.skip').toUpperCase()}</Text>
       <Animated.View style={{ transform: [{ translateX: tx }] }} {...pan.panHandlers}>
-        <Card style={[styles.card, st === 'done' && { borderColor: rgba(color, 0.4) }, st === 'skip' && { opacity: 0.7 }]}>
-          <Pressable
-            onPress={() => setSheet('menu')}
-            accessibilityRole="button"
-            accessibilityLabel={t('today.menu', { name: a.name })}
-            style={[styles.icon, { backgroundColor: rgba(color, 0.14) }]}>
-            <ActivityIcon name={a.icon} color={color} />
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.name, { color: th.text }]}>{a.name}</Text>
-            <Text style={[styles.sub, { color: th.muted }]} numberOfLines={2}>{st === 'skip' ? t('today.skippedToday') : subtitle(a, today, L)}</Text>
-            {!!a.minimal && st !== 'skip' && <Text style={[styles.min, { color: th.faint }]} numberOfLines={1}>{t('today.minPrefix', { text: a.minimal })}</Text>}
-          </View>
+        <View
+          style={[
+            styles.row,
+            // Opaque: the swipe-to-skip label sits behind this row.
+            { borderColor: hit ? rgba(color, 0.4) : th.surface2, backgroundColor: hit ? mix(th.bg, color, 0.06) : th.bg },
+            st === 'skip' && { opacity: 0.55 },
+          ]}>
           <Pressable
             testID={`check-${a.id}`}
             accessibilityRole="button"
@@ -175,14 +187,30 @@ function ActivityCard({ a, today }: { a: Activity; today: string }) {
             onPress={tap}
             onLongPress={minimum}
             delayLongPress={450}
-            style={({ pressed }) => [
-              styles.pad,
-              { borderColor: st === 'skip' ? th.faint : color, backgroundColor: st === 'done' ? color : st === 'min' ? rgba(color, 0.45) : 'transparent' },
-              pressed && { transform: [{ scale: 0.92 }] },
-            ]}>
-            <Text style={{ color: st === 'done' ? th.onAccent : color, fontSize: font.size.lg, fontWeight: font.weight.bold }}>{glyph}</Text>
+            style={({ pressed }) => [styles.check, check, pressed && { transform: [{ scale: 0.92 }] }]}>
+            {/* The minimum fills the bottom half of the circle. */}
+            {st === 'min' && <View style={[styles.checkHalf, { backgroundColor: color }]} />}
+            {hit && <UIIcon name="check" color={st === 'done' ? th.onAccent : neutral[200]} size={19} weight="bold" />}
           </Pressable>
-        </Card>
+          <Pressable
+            onPress={() => setSheet('menu')}
+            accessibilityRole="button"
+            accessibilityLabel={t('today.menu', { name: a.name })}
+            style={{ flex: 1 }}>
+            <View style={styles.nameRow}>
+              <ActivityIcon name={a.icon} color={color} size={15} />
+              <Text style={[styles.name, { color: st === 'skip' ? th.muted : th.text }]} numberOfLines={1}>{a.name}</Text>
+              {!!tag && (
+                <View style={[styles.tag, { borderColor: rgba(st === 'skip' ? th.muted : color, 0.45) }]}>
+                  <Text style={[styles.tagText, { color: st === 'skip' ? th.muted : color }]}>{tag}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.sub, { color: th.muted }]} numberOfLines={2}>
+              {st === 'skip' ? t('today.skippedToday') : subtitle(a, today, L, !!st)}
+            </Text>
+          </Pressable>
+        </View>
       </Animated.View>
       {(sheet === 'skip' || sheet === 'value') && <LogSheet activity={a} date={today} mode={sheet} visible onClose={() => setSheet(null)} />}
       <Sheet visible={sheet === 'menu'} onClose={() => setSheet(null)} title={a.name}>
@@ -197,23 +225,23 @@ function ActivityCard({ a, today }: { a: Activity; today: string }) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: space[6], paddingBottom: space[12] },
-  display: { fontFamily: font.family, fontSize: font.size.display, fontWeight: font.weight.semibold, letterSpacing: font.tracking.tight, marginTop: space[2] },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: space[4], marginVertical: space[8] },
-  segs: { flex: 1, flexDirection: 'row', gap: space[1] },
-  seg: { flex: 1, height: 8, borderRadius: 3, borderWidth: 1 },
-  count: { fontFamily: font.family, fontSize: font.size.sm, fontWeight: font.weight.semibold },
-  hint: { flexDirection: 'row', alignItems: 'center', gap: space[3], padding: space[4], borderRadius: radius.md, borderWidth: 1, borderStyle: 'dashed', marginBottom: space[4] },
-  hintText: { flex: 1, fontFamily: font.family, fontSize: font.size.sm },
-  freeTitle: { fontFamily: font.family, fontSize: font.size.xl, fontWeight: font.weight.semibold, marginVertical: space[3] },
-  cardWrap: { borderRadius: radius.lg, marginBottom: space[3], overflow: 'hidden', justifyContent: 'center' },
-  skipHint: { position: 'absolute', right: space[6], fontFamily: font.family, fontSize: font.size.xs, fontWeight: font.weight.semibold, letterSpacing: font.tracking.eyebrow },
-  card: { flexDirection: 'row', alignItems: 'center', gap: space[4], padding: space[4] },
-  icon: { width: TOUCH, height: TOUCH, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  name: { fontFamily: font.family, fontSize: font.size.lg, fontWeight: font.weight.semibold },
-  sub: { fontFamily: font.family, fontSize: font.size.sm, marginTop: 2 },
-  min: { fontFamily: font.family, fontSize: font.size.xs, marginTop: 2 },
-  pad: { width: 48, height: 48, borderRadius: radius.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  headRow: { flexDirection: 'row', alignItems: 'baseline', gap: space[4] },
+  count: { fontFamily: font.family, fontSize: 11.5 },
+  barWrap: { marginTop: space[5], marginBottom: space[6] },
+  hint: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginBottom: space[6] },
+  hintText: { flex: 1, fontFamily: font.family, fontSize: font.size.xs, lineHeight: 17 },
+  freeTitle: { fontFamily: font.medium, fontSize: font.size.xl, marginVertical: space[3] },
+  rowWrap: { borderRadius: 12, marginBottom: space[3], overflow: 'hidden', justifyContent: 'center' },
+  skipHint: { position: 'absolute', right: space[6], fontFamily: font.semibold, fontSize: font.size.xs, letterSpacing: font.tracking.eyebrow },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 11, borderWidth: 1, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 12 },
+  check: { width: CHECK, height: CHECK, borderRadius: CHECK / 2, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  checkHalf: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  name: { fontFamily: font.medium, fontSize: 13.5, flexShrink: 1 },
+  tag: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 2 },
+  tagText: { fontFamily: font.medium, fontSize: 9 },
+  sub: { fontFamily: font.family, fontSize: 11, marginTop: 3 },
   upRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[4], borderBottomWidth: 1 },
-  upName: { flex: 1, fontFamily: font.family, fontSize: font.size.md, fontWeight: font.weight.semibold },
-  upWhen: { fontFamily: font.family, fontSize: font.size.sm },
+  upName: { flex: 1, fontFamily: font.medium, fontSize: font.size.sm },
+  upWhen: { fontFamily: font.family, fontSize: font.size.xs },
 });

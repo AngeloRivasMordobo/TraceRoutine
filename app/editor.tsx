@@ -26,10 +26,10 @@ import { appStore, newId, useActivity, useAppStore } from '@/src/store/appStore'
 import { Button, Seg } from '@/src/ui/components';
 import { Chip, ErrorText, FieldLabel, Help, Stepper, inputStyle } from '@/src/ui/controls';
 import { addCycleStep, anchorExamples, applyDuration, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
-import { ActivityIcon, ICON_KEYS } from '@/src/ui/icons';
+import { ActivityIcon, ICON_KEYS, UIIcon } from '@/src/ui/icons';
 import { shiftMonth } from '@/src/ui/month/gridModel';
 import { useTheme } from '@/src/ui/theme';
-import { ACTIVITY_COLOR_KEYS, activityColors, font, radius, rgba, space, TOUCH, type ActivityColor } from '@/src/ui/tokens';
+import { ACTIVITY_COLOR_KEYS, activityColor, activityColors, font, neutral, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
 
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
@@ -86,36 +86,39 @@ export default function EditorScreen() {
     return map;
   })();
 
+  // The editor can be the only route in the stack: first-activity replaces into it,
+  // and on web it can be opened directly by URL. back() would have nothing to pop.
+  const dismiss = () => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); };
   const save = () => {
     if (errors.length) { setShowErrors(true); return; }
     if (limitReached) {
       track('free_limit_reached', { active: activeCount });
       Alert.alert(t('settings.freeLimitTitle', { limit: FREE_ACTIVE_LIMIT }), t('settings.freeLimitBody'), [
         { text: t('editor.cancel'), style: 'cancel' },
-        { text: t('settings.freeLimitArchive'), onPress: () => { router.back(); router.push('/(tabs)/settings'); } },
-        { text: t('settings.freeLimitPro'), onPress: () => { router.back(); router.push('/(tabs)/settings'); } },
+        { text: t('settings.freeLimitArchive'), onPress: () => { dismiss(); router.push('/(tabs)/settings'); } },
+        { text: t('settings.freeLimitPro'), onPress: () => { dismiss(); router.push('/(tabs)/settings'); } },
       ]);
       return;
     }
     appStore.upsertActivity({ ...draft, name: draft.name.trim(), unit: draft.unit?.trim() || null, minimal: draft.minimal?.trim() || null, reminder: draft.reminder || null });
     if (!existing) track('create_activity', { type: draft.freq.type, anchor: draft.freq.anchor ?? 'calendar', first_activity: firstParam === '1' });
     if (firstParam === '1') router.replace('/(tabs)/month');
-    else router.back();
+    else dismiss();
   };
   const cancel = () => {
-    if (!touched) return router.back();
+    if (!touched) return dismiss();
     Alert.alert(t('editor.unsaved'), undefined, [
       { text: t('editor.keepEditing'), style: 'cancel' },
-      { text: t('editor.discard'), style: 'destructive', onPress: () => router.back() },
+      { text: t('editor.discard'), style: 'destructive', onPress: dismiss },
     ]);
   };
   const remove = () => {
     Alert.alert(t('editor.deleteConfirm', { name: draft.name }), undefined, [
       { text: t('editor.cancel'), style: 'cancel' },
-      { text: t('editor.delete'), style: 'destructive', onPress: () => { appStore.deleteActivity(draft.id); router.back(); } },
+      { text: t('editor.delete'), style: 'destructive', onPress: () => { appStore.deleteActivity(draft.id); dismiss(); } },
     ]);
   };
-  const archive = () => { appStore.setArchived(draft.id, !draft.archived); router.back(); };
+  const archive = () => { appStore.setArchived(draft.id, !draft.archived); dismiss(); };
 
   const anchorCard = (value: 'calendar' | 'relative', title: string, body: string) => {
     const on = anchor === value;
@@ -134,7 +137,7 @@ export default function EditorScreen() {
   const { first } = monthRange(pm.y, pm.m);
   const offset = (weekday(first) + 6) % 7;
   const daysN = daysInMonth(pm.y, pm.m);
-  const color = activityColors[draft.color as ActivityColor] ?? th.accent;
+  const color = activityColor(draft.color);
   const monthName = formatMonthYear(pm.y, pm.m).split(' ')[0];
   const summaryText = summary.flexible
     ? t('editor.previewFlex', { n: summary.count, month: monthName })
@@ -146,12 +149,16 @@ export default function EditorScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: th.bg }]} edges={['top', 'bottom']}>
-      <View style={[styles.head, { borderBottomColor: th.line }]}>
-        <Pressable onPress={cancel} hitSlop={8} accessibilityRole="button"><Text style={[styles.link, { color: th.muted }]}>{t('editor.cancel')}</Text></Pressable>
-        <Text style={[styles.title, { color: th.text }]}>{existing ? t('editor.editTitle') : t('editor.newTitle')}</Text>
-        <Pressable onPress={save} hitSlop={8} accessibilityRole="button" disabled={!draft.name.trim()}>
-          <Text style={[styles.link, { color: draft.name.trim() ? th.accent : th.faint, textAlign: 'right' }]}>{t('editor.save')}</Text>
+      <View style={styles.head}>
+        <Pressable
+          onPress={cancel}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('editor.cancel')}
+          style={({ pressed }) => [styles.back, { borderColor: pressed ? th.accent : th.line }]}>
+          <UIIcon name="back" color={neutral[300]} size={14} />
         </Pressable>
+        <Text style={[styles.title, { color: th.text }]}>{existing ? t('editor.editTitle') : t('editor.newTitle')}</Text>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
@@ -173,7 +180,7 @@ export default function EditorScreen() {
           <View style={styles.rowGap}>
             {ACTIVITY_COLOR_KEYS.map((k) => (
               <Pressable key={k} accessibilityRole="button" accessibilityLabel={t('editor.chooseColor', { name: t(`colors.${k}`) })} accessibilityState={{ selected: draft.color === k }} onPress={() => patch({ color: k })}
-                style={[styles.swatch, { backgroundColor: activityColors[k], borderColor: draft.color === k ? th.text : 'transparent' }]} />
+                style={[styles.swatch, { backgroundColor: activityColors[k] }, draft.color === k && { borderColor: activityColors[k], shadowColor: activityColors[k] }]} />
             ))}
           </View>
 
@@ -230,7 +237,7 @@ export default function EditorScreen() {
                   return (
                     <Pressable key={d} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => patchFreq((r) => toggleWeekday(r, d))}
                       style={[styles.dow, { backgroundColor: on ? th.accent : th.surface, borderColor: on ? th.accent : th.line }]}>
-                      <Text style={{ color: on ? th.onAccent : th.muted, fontWeight: font.weight.semibold }}>{letters[d]}</Text>
+                      <Text style={{ fontFamily: font.semibold, color: on ? th.onAccent : th.muted }}>{letters[d]}</Text>
                     </Pressable>
                   );
                 })}
@@ -340,7 +347,7 @@ export default function EditorScreen() {
           {existing && (
             <View style={{ gap: space[3], marginTop: space[4] }}>
               <Button label={t('editor.archive')} variant="secondary" onPress={archive} />
-              <Pressable onPress={remove} accessibilityRole="button" style={styles.danger}><Text style={{ color: th.danger, fontWeight: font.weight.medium }}>{t('editor.delete')}</Text></Pressable>
+              <Pressable onPress={remove} accessibilityRole="button" style={styles.danger}><Text style={{ fontFamily: font.medium, color: th.danger }}>{t('editor.delete')}</Text></Pressable>
             </View>
           )}
           <View style={{ height: space[12] }} />
@@ -352,25 +359,26 @@ export default function EditorScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space[6], paddingVertical: space[4], borderBottomWidth: 1 },
-  title: { fontFamily: font.family, fontSize: font.size.lg, fontWeight: font.weight.semibold },
-  link: { fontFamily: font.family, fontSize: font.size.md, fontWeight: font.weight.medium, minWidth: TOUCH, paddingVertical: space[2] },
+  head: { flexDirection: 'row', alignItems: 'center', gap: space[4], paddingHorizontal: space[6], paddingVertical: space[4] },
+  back: { width: 32, height: 32, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  title: { fontFamily: font.medium, fontSize: font.size.lg },
   body: { padding: space[6] },
   rowGap: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
-  iconBtn: { width: TOUCH, height: TOUCH, borderRadius: radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  swatch: { width: 36, height: 36, borderRadius: radius.md, borderWidth: 2 },
+  iconBtn: { width: TOUCH, height: TOUCH, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  // The canvas marks the chosen colour with a ring set off from the ground.
+  swatch: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: 'transparent', shadowOpacity: 1, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
   dow: { width: 40, height: 40, borderRadius: radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   opt: { padding: space[4], borderRadius: radius.md, borderWidth: 1.5 },
-  optTitle: { fontFamily: font.family, fontSize: font.size.md, fontWeight: font.weight.semibold, marginBottom: 2 },
+  optTitle: { fontFamily: font.semibold, fontSize: font.size.md, marginBottom: 2 },
   optBody: { fontFamily: font.family, fontSize: font.size.sm },
   preview: { marginTop: space[8], borderWidth: 1, borderRadius: radius.lg, padding: space[4] },
   previewHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space[3] },
-  previewTitle: { fontFamily: font.family, fontSize: font.size.xs, fontWeight: font.weight.medium, letterSpacing: font.tracking.eyebrow },
+  previewTitle: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: font.tracking.eyebrow },
   nav: { fontSize: 22, paddingHorizontal: space[3] },
   mini: { flexDirection: 'row', flexWrap: 'wrap' },
   miniHead: { width: `${100 / 7}%`, textAlign: 'center', fontSize: font.size.xs, marginBottom: space[1] },
   miniCell: { width: `${100 / 7}%`, aspectRatio: 1.15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: radius.sm, borderColor: 'transparent' },
-  miniText: { fontFamily: font.family, fontSize: font.size.xs, fontWeight: font.weight.semibold },
+  miniText: { fontFamily: font.semibold, fontSize: font.size.xs },
   summary: { fontFamily: font.family, fontSize: font.size.sm, marginTop: space[3] },
   twoCol: { flexDirection: 'row', gap: space[3] },
   danger: { minHeight: TOUCH, alignItems: 'center', justifyContent: 'center' },

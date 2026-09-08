@@ -32,19 +32,25 @@ export const accentRamp = {
 } as const;
 
 /**
- * One accent per activity, all at the lightness of the product accent so no
- * column shouts louder than another. `accent` is the product's own blurple.
+ * One accent per activity — the design canvas's four hues, in its order, all at
+ * the accent's own lightness so no row shouts louder than another.
  */
 export const activityColors = {
-  accent: '#9184d9',
-  coral: '#d98a8e',
-  amber: '#d9b784',
-  mint: '#84d9b0',
-  sky: '#84b7d9',
-  rose: '#d984c1',
+  sky: '#82a7e6',
+  amber: '#d0a976',
+  teal: '#74c4b2',
+  accent: '#968ae0',
 } as const;
 export type ActivityColor = keyof typeof activityColors;
 export const ACTIVITY_COLOR_KEYS = Object.keys(activityColors) as ActivityColor[];
+
+/** Colors stored before the palette moved to the design's four; kept so old activities still render. */
+const LEGACY_COLORS: Record<string, ActivityColor> = { coral: 'amber', mint: 'teal', rose: 'accent' };
+
+/** The hue for a stored `Activity.color`, resolving legacy names. Falls back to the accent. */
+export function activityColor(key: string): string {
+  return activityColors[(key in activityColors ? key : LEGACY_COLORS[key] ?? 'accent') as ActivityColor];
+}
 
 export interface Theme {
   name: 'dark' | 'light';
@@ -106,9 +112,16 @@ export const space = { 1: 2.8, 2: 5.6, 3: 8.4, 4: 11.2, 5: 14, 6: 16.8, 8: 22.4,
 
 export const radius = { sm: 4, md: 8, lg: 14, pill: 999 } as const;
 
+/**
+ * Inter, as Nocturne requires. React Native resolves a custom face by family name
+ * rather than by `fontWeight`, so each weight is its own family here and styles
+ * pick the face instead of setting a weight.
+ */
 export const font = {
   family: 'Inter',
-  weight: { regular: '400', medium: '500', semibold: '600', bold: '700' } as const,
+  medium: 'Inter-Medium',
+  semibold: 'Inter-SemiBold',
+  bold: 'Inter-Bold',
   size: { xs: 11, sm: 12.5, md: 15, lg: 17, xl: 22, display: 32 } as const,
   tracking: { eyebrow: 1.4, tight: -0.4 } as const,
 } as const;
@@ -122,7 +135,23 @@ export const shadow = {
 /** Minimum touch target (accessibility, TR-75). */
 export const TOUCH = 44;
 
-/** rgba() helper for tints of an activity color, e.g. `rgba(activityColors.coral, 0.14)`. */
+/**
+ * An opaque blend of `top` over `bottom`, the equivalent of the design's
+ * `color-mix(in srgb, hue N%, transparent)` once it has settled on the ground.
+ * Use it where a translucent fill would let what sits behind it show through.
+ */
+export function mix(bottom: string, top: string, amount: number): string {
+  const parse = (hex: string) => {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const [br, bg, bb] = parse(bottom);
+  const [tr, tg, tb] = parse(top);
+  const c = (a: number, b: number) => Math.round(a + (b - a) * amount);
+  return `rgb(${c(br, tr)}, ${c(bg, tg)}, ${c(bb, tb)})`;
+}
+
+/** rgba() helper for tints of an activity color, e.g. `rgba(activityColors.amber, 0.14)`. */
 export function rgba(hex: string, alpha: number): string {
   const n = parseInt(hex.replace('#', ''), 16);
   const r = (n >> 16) & 255;
