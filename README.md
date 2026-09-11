@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="brand/trace-icon.svg" width="96" alt="TraceRoutine — three cells done, the next one waiting" />
+</p>
+
 # TraceRoutine
 
 Any activity. Your real frequency. No guilt.
