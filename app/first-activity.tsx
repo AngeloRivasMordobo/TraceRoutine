@@ -6,14 +6,15 @@ import { useAppStore } from '@/src/store/appStore';
 import { Eyebrow } from '@/src/ui/components';
 import { ActivityIcon } from '@/src/ui/icons';
 import { useTheme } from '@/src/ui/theme';
-import { activityColors, font, radius, space, TOUCH } from '@/src/ui/tokens';
+import { font, radius, rgba, space, TOUCH, type ActivityColor } from '@/src/ui/tokens';
 
-type Suggestion = { key: string; icon: string; color: string; preset: string };
+/** `color` is what the editor is prefilled with; the list itself draws every tile in the accent. */
+type Suggestion = { key: string; icon: string; color: ActivityColor; preset: string };
 const SUGGESTIONS: Suggestion[] = [
-  { key: 'train', icon: 'barbell', color: 'coral', preset: 'everyOtherDay' },
-  { key: 'treatment', icon: 'pill', color: 'mint', preset: 'everyOtherDay' },
+  { key: 'train', icon: 'barbell', color: 'amber', preset: 'everyOtherDay' },
+  { key: 'treatment', icon: 'pill', color: 'teal', preset: 'everyOtherDay' },
   { key: 'read', icon: 'book', color: 'accent', preset: 'threePerWeek' },
-  { key: 'practice', icon: 'guitar', color: 'rose', preset: 'mwf' },
+  { key: 'practice', icon: 'guitar', color: 'sky', preset: 'mwf' },
 ];
 
 /** Guided first activity (TR-71): one tap prefills the editor with a real, non-daily frequency. */
@@ -32,15 +33,12 @@ export default function FirstActivityScreen() {
         <Text style={[styles.display, { color: th.text }]}>{t('firstActivity.title')}</Text>
         <Text style={[styles.lead, { color: th.muted }]}>{t('firstActivity.body')}</Text>
         <View style={{ marginTop: space[8], gap: space[3] }}>
-          {SUGGESTIONS.map((s) => {
-            const color = activityColors[s.color as keyof typeof activityColors];
-            return (
-              <Pressable key={s.key} onPress={() => open(s)} accessibilityRole="button" style={({ pressed }) => [styles.opt, { borderColor: th.line, backgroundColor: pressed ? th.surface2 : th.surface }]}>
-                <View style={[styles.icon, { backgroundColor: `${color}24` }]}><ActivityIcon name={s.icon} color={color} /></View>
-                <Text style={[styles.optText, { color: th.text }]}>{t(`firstActivity.${s.key}`)}</Text>
-              </Pressable>
-            );
-          })}
+          {SUGGESTIONS.map((s) => (
+            <Pressable key={s.key} onPress={() => open(s)} accessibilityRole="button" style={({ pressed }) => [styles.opt, { borderColor: th.line, backgroundColor: pressed ? th.surface2 : th.surface }]}>
+              <View style={[styles.icon, { backgroundColor: rgba(th.accent, 0.14) }]}><ActivityIcon name={s.icon} color={th.accent} /></View>
+              <Text style={[styles.optText, { color: th.text }]}>{t(`firstActivity.${s.key}`)}</Text>
+            </Pressable>
+          ))}
           <Pressable onPress={() => open()} accessibilityRole="button" style={({ pressed }) => [styles.opt, { borderColor: th.accent, backgroundColor: pressed ? th.surface2 : 'transparent' }]}>
             <Text style={[styles.optText, { color: th.accent, textAlign: 'center', flex: 1 }]}>{t('firstActivity.other')}</Text>
           </Pressable>
@@ -59,6 +57,6 @@ const styles = StyleSheet.create({
   lead: { fontFamily: font.family, fontSize: font.size.md, marginTop: space[3] },
   opt: { flexDirection: 'row', alignItems: 'center', gap: space[4], minHeight: TOUCH + 12, padding: space[4], borderRadius: radius.md, borderWidth: 1 },
   icon: { width: TOUCH, height: TOUCH, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  optText: { fontFamily: font.medium, fontSize: font.size.md },
+  optText: { flex: 1, fontFamily: font.medium, fontSize: font.size.md },
   skip: { alignItems: 'center', paddingVertical: space[4] },
 });
