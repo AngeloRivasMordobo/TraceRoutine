@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultRule } from '../../engine/presets';
-import { addCycleStep, anchorExamples, applyDuration, isValidTime, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft } from './editorModel';
+import { addCycleStep, anchorExamples, applyDuration, dateToTime, isValidTime, newDraft, previewSummary, removeCycleStep, timeToDate, toggleWeekday, validateDraft } from './editorModel';
 
 const TODAY = '2026-08-27';
 
@@ -20,6 +20,21 @@ describe('editor model', () => {
     expect(validateDraft({ ...newDraft('x', TODAY), name: 'A', freq: { ...defaultRule(), type: 'weekdays', days: [] } })).toEqual(['days']);
     expect(isValidTime('07:30')).toBe(true);
     expect(isValidTime('7:30')).toBe(false);
+  });
+  it('a reminder time survives the round trip through the time picker, for every minute of the day (TR-107)', () => {
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m++) {
+        const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        expect(dateToTime(timeToDate(time))).toBe(time);
+      }
+    }
+    expect(dateToTime(timeToDate('08:00g'))).toBe('08:00');
+    expect(dateToTime(timeToDate(''))).toBe('08:00');
+  });
+  it('the picker time never depends on the device time zone or a daylight-saving change (TR-107)', () => {
+    expect(timeToDate('02:30').toISOString()).toBe('2000-01-01T02:30:00.000Z');
+    expect(dateToTime(new Date('2000-01-01T00:00:00Z'))).toBe('00:00');
+    expect(dateToTime(new Date('2000-01-01T23:59:00Z'))).toBe('23:59');
   });
   it('anchor examples follow N', () => {
     expect(anchorExamples(2)).toEqual({ b: 3, c: 5, d: 4, e: 6 });

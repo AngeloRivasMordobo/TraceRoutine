@@ -13,10 +13,10 @@ import { Button, Kicker, Title } from '@/src/ui/components';
 import { Sheet, inputStyle } from '@/src/ui/controls';
 import { ActivityIcon, UIIcon, type UIIconKey } from '@/src/ui/icons';
 import { Logo } from '@/src/ui/Logo';
+import { TimeField } from '@/src/ui/TimeField';
 import { useTheme, type ThemeMode } from '@/src/ui/theme';
 import { accentRamp, activityColor, font, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
 
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** Settings (TR-63 … TR-69). Every change applies instantly. */
 export default function SettingsScreen() {
@@ -33,7 +33,6 @@ export default function SettingsScreen() {
   const archived = activities.filter((a) => a.archived);
   const activeCount = activities.filter((a) => !a.archived && !(a.end && a.end < today)).length;
   const [perm, setPerm] = useState<PermissionState>('undetermined');
-  const [timeDraft, setTimeDraft] = useState(morningTime);
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
   const [typed, setTyped] = useState('');
   const [toast, setToast] = useState<string | null>(null);
@@ -48,7 +47,6 @@ export default function SettingsScreen() {
       { text: t('reminders.prePromptOk'), onPress: async () => { setPerm(await requestPermission()); await rescheduleReminders(); } },
     ]);
   };
-  const commitTime = () => { if (TIME_RE.test(timeDraft)) appStore.setMorningTime(timeDraft); else setTimeDraft(morningTime); };
 
   const exportCsv = async () => {
     const list = Object.values(logs);
@@ -110,7 +108,7 @@ export default function SettingsScreen() {
           </Row>
           {morningSummary && (
             <Row icon="bell" label={t('settings.morningTime')}>
-              <TextInput value={timeDraft} onChangeText={setTimeDraft} onBlur={commitTime} onSubmitEditing={commitTime} keyboardType="numbers-and-punctuation" style={[inputStyle(th), { width: 88, textAlign: 'center' }]} accessibilityLabel={t('settings.morningTime')} />
+              <TimeField value={morningTime} onChange={appStore.setMorningTime} accessibilityLabel={t('settings.morningTime')} width={88} />
             </Row>
           )}
           <ActionRow icon="download" label={t('settings.exportCsv')} onPress={() => void exportCsv()} />

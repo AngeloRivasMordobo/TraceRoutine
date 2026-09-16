@@ -28,6 +28,7 @@ import { Chip, ErrorText, FieldLabel, Help, Stepper, inputStyle } from '@/src/ui
 import { addCycleStep, anchorExamples, applyDuration, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
 import { ActivityIcon, ICON_KEYS, UIIcon } from '@/src/ui/icons';
 import { shiftMonth } from '@/src/ui/month/gridModel';
+import { TimeField } from '@/src/ui/TimeField';
 import { useTheme } from '@/src/ui/theme';
 import { ACTIVITY_COLOR_KEYS, activityColor, activityColors, font, neutral, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
 
@@ -335,7 +336,7 @@ export default function EditorScreen() {
           <View style={[styles.rowGap, { alignItems: 'center' }]}>
             <Switch value={!!draft.reminder} onValueChange={(on) => patch({ reminder: on ? '08:00' : null })} trackColor={{ true: th.accent, false: th.line }} thumbColor={th.text} />
             {!!draft.reminder && (
-              <TextInput value={draft.reminder} onChangeText={(v) => patch({ reminder: v })} placeholder="08:00" placeholderTextColor={th.faint} keyboardType="numbers-and-punctuation" style={[inputStyle(th), { width: 96 }]} />
+              <TimeField value={draft.reminder} onChange={(reminder) => patch({ reminder })} accessibilityLabel={t('editor.reminder')} />
             )}
           </View>
           <ErrorText>{err('time')}</ErrorText>

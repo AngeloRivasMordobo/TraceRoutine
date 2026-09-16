@@ -44,7 +44,8 @@
           "color": "#9184d9",
           "defaultChannel": "reminders"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

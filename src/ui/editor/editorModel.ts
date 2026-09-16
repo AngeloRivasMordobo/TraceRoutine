@@ -18,6 +18,22 @@ export function newDraft(id: string, today: DateKey): Activity {
 export const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 export const isValidTime = (s: string): boolean => TIME_RE.test(s);
 
+/**
+ * The Date a time picker opens on for "HH:MM" (anything invalid opens on 08:00). It is
+ * a fixed UTC day and the pickers are given timeZoneName "UTC", so no daylight-saving
+ * gap or device time-zone change can shift the wall time on the way in or out.
+ */
+export function timeToDate(time: string): Date {
+  const [h, m] = isValidTime(time) ? time.split(':').map(Number) : [8, 0];
+  return new Date(Date.UTC(2000, 0, 1, h, m));
+}
+
+/** The "HH:MM" stored for a Date returned by a picker opened with timeToDate. */
+export function dateToTime(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+}
+
 export function validateDraft(a: Activity): DraftError[] {
   const errors: DraftError[] = [];
   if (!a.name.trim()) errors.push('name');
