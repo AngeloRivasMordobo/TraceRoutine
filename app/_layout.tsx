@@ -1,4 +1,4 @@
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -19,13 +19,12 @@ initSentry();
 function RootLayout() {
   const themeMode = useAppStore((s) => s.themeMode);
   const ready = useAppStore((s) => s.ready);
-  // Nocturne is set in Inter. React Native picks a face by family name, so each
-  // weight registers under the name src/ui/tokens.ts asks for.
+  // Nocturne is set in Inter at 400 and 500 — the readme forbids heavier headings.
+  // React Native picks a face by family name, so each weight registers under the
+  // name src/ui/tokens.ts asks for.
   const [fontsLoaded] = useFonts({
     Inter: Inter_400Regular,
     'Inter-Medium': Inter_500Medium,
-    'Inter-SemiBold': Inter_600SemiBold,
-    'Inter-Bold': Inter_700Bold,
   });
 
   useEffect(() => {

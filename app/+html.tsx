@@ -29,9 +29,10 @@ export default function Root({ children }: { children: ReactNode }) {
 }
 
 // The Nocturne grounds, so the page never flashes a colour the app does not use.
+// Light is neutral-200, as the light theme's ground: the system forbids pure white.
 const responsiveBackground = `
 body {
-  background-color: #f3f5fe;
+  background-color: #e4e7f5;
 }
 @media (prefers-color-scheme: dark) {
   body {

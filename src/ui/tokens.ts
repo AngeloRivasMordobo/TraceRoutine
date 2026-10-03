@@ -7,6 +7,8 @@
  * 100–300 for text on tints. Nothing outside this file hard-codes a color.
  */
 
+import { Platform } from 'react-native';
+
 export const neutral = {
   100: '#f3f5fe',
   200: '#e4e7f5',
@@ -60,13 +62,28 @@ export interface Theme {
   line: string;
   text: string;
   muted: string;
+  /** One step below `muted`: the canvas's neutral-600 — sub-lines, help text, frequency labels, inactive nav. */
+  subtle: string;
   faint: string;
+  /** Icon glyph inside an outlined control: the canvas's neutral-400. */
+  icon: string;
   accent: string;
   /** Text color on top of a solid accent or activity fill. */
   onAccent: string;
   accentTint: string;
+  /** Text and glyphs on top of `accentTint`. */
+  onAccentTint: string;
+  /** The border of a selected, tinted control. */
+  accentLine: string;
+  /** Accent-coloured text on the ground: a deep ramp step, never the base accent (Nocturne readme). */
+  accentText: string;
   pressed: string;
+  /** Nocturne ships no danger ramp; these come from the design canvas. */
   danger: string;
+  /** The recessed ground the tab bar sits on. */
+  chrome: string;
+  /** The ring of the highest elevation step. */
+  lineStrong: string;
   section: string;
   sectionGlow: string;
 }
@@ -79,30 +96,44 @@ export const dark: Theme = {
   line: neutral[800],
   text: '#e9e9ed',
   muted: neutral[500],
+  subtle: neutral[600],
   faint: neutral[700],
+  icon: neutral[400],
   accent: '#9184d9',
-  onAccent: '#161826',
-  accentTint: accentRamp[900],
+  onAccent: '#12141f',
+  accentTint: accentRamp[800],
+  onAccentTint: accentRamp[200],
+  accentLine: accentRamp[600],
+  accentText: accentRamp[300],
   pressed: accentRamp[400],
-  danger: '#d98a8e',
+  danger: '#d98a8a',
+  chrome: mix('#161826', '#000000', 0.12),
+  lineStrong: neutral[500],
   section: '#262a60',
   sectionGlow: '#353b80',
 };
 
 export const light: Theme = {
   name: 'light',
-  bg: neutral[100],
-  surface: '#ffffff',
-  surface2: neutral[200],
-  line: neutral[300],
+  bg: neutral[200],
+  surface: neutral[100],
+  surface2: neutral[300],
+  line: neutral[400],
   text: neutral[900],
   muted: neutral[600],
+  subtle: neutral[500],
   faint: neutral[400],
+  icon: neutral[600],
   accent: accentRamp[600],
-  onAccent: '#ffffff',
+  onAccent: neutral[100],
   accentTint: accentRamp[200],
+  onAccentTint: accentRamp[800],
+  accentLine: accentRamp[600],
+  accentText: accentRamp[700],
   pressed: accentRamp[700],
   danger: '#b3555a',
+  chrome: neutral[200],
+  lineStrong: neutral[400],
   section: accentRamp[100],
   sectionGlow: accentRamp[200],
 };
@@ -110,27 +141,62 @@ export const light: Theme = {
 /** 0.7× density: base unit 2.8 px (2.8, 5.6, 8.4, 11.2, 16.8, 22.4). */
 export const space = { 1: 2.8, 2: 5.6, 3: 8.4, 4: 11.2, 5: 14, 6: 16.8, 8: 22.4, 10: 28, 12: 33.6 } as const;
 
-export const radius = { sm: 4, md: 8, lg: 14, pill: 999 } as const;
+/** `tag` is Nocturne's `calc(--radius-md * 0.75)`. */
+export const radius = { sm: 4, tag: 6, md: 8, lg: 14, pill: 999 } as const;
 
 /**
- * Inter, as Nocturne requires. React Native resolves a custom face by family name
- * rather than by `fontWeight`, so each weight is its own family here and styles
- * pick the face instead of setting a weight.
+ * Inter at the two weights Nocturne uses — 400 and 500. The readme forbids going past
+ * 500 ("hierarchy here is size and space"), so there is no semibold or bold face.
+ * React Native resolves a custom face by family name rather than by `fontWeight`,
+ * so each weight is its own family here and styles pick the face.
  */
 export const font = {
   family: 'Inter',
   medium: 'Inter-Medium',
-  semibold: 'Inter-SemiBold',
-  bold: 'Inter-Bold',
-  size: { xs: 11, sm: 12.5, md: 15, lg: 17, xl: 22, display: 32 } as const,
+  /** The canvas sets every numeric readout in the platform's monospace. */
+  mono: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }) as string,
+  size: {
+    cell: 8.5,
+    micro: 9,
+    meta: 10.5,
+    label: 11.5,
+    mono: 12,
+    control: 14,
+    xs: 11,
+    sm: 12.5,
+    md: 15,
+    lg: 17,
+    xl: 22,
+    title: 24,
+    brand: 30,
+  } as const,
   tracking: { eyebrow: 1.4, tight: -0.4 } as const,
 } as const;
 
-/** Elevation tuned to the dark ground: a 1 px ring rather than a blurred drop. */
-export const shadow = {
-  sm: { shadowColor: neutral[800], shadowOpacity: 1, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 1 },
+/**
+ * The canvas tracks in em; React Native's `letterSpacing` is absolute, so the value
+ * has to be derived from the size it is applied at.
+ */
+const TRACK_EM = { label: 0.1, kicker: 0.14, title: -0.01 } as const;
+export const track = (role: keyof typeof TRACK_EM, size: number): number =>
+  Math.round(TRACK_EM[role] * size * 100) / 100;
+
+/**
+ * Nocturne's `--shadow-sm/md/lg`: a 1 px ring plus ambient darkness, never a blurred
+ * drop. `lg`'s offset is negative because the only surface at that step is a sheet
+ * anchored to the bottom, whose single visible edge is its top. Black here is the
+ * readme's one sanctioned exception: ambient darkness is a shadow, not a color.
+ */
+const ambient = {
+  sm: null,
   md: { shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  lg: { shadowColor: '#000', shadowOpacity: 0.65, shadowRadius: 20, shadowOffset: { width: 0, height: -16 }, elevation: 16 },
 } as const;
+
+export function elevation(level: 'sm' | 'md' | 'lg', th: Theme) {
+  const ring = { sm: th.line, md: th.faint, lg: th.lineStrong }[level];
+  return { borderWidth: 1, borderColor: ring, ...(ambient[level] ?? {}) };
+}
 
 /** Minimum touch target (accessibility, TR-75). */
 export const TOUCH = 44;
