@@ -17,13 +17,15 @@ describe('stats model', () => {
   });
   it('counts the days actually logged, which a flexible rule can push past its capped hits', () => {
     const flex: Activity = { ...daily('flex', -20), freq: { type: 'perWeek', times: 1 } };
-    // Done every day of the month so far: a 1×/week rule caps hits, the raw count does not.
+    // Done every day: a 1×/week rule caps hits, the raw count does not. The count starts at
+    // the activity's own start (Aug 7), not at the first of the month.
     const L = logs((_, d) => (d <= TODAY ? 'done' : null));
     const s = monthStats([flex], 2026, 8, TODAY, L);
-    expect(s.rows[0].done).toBe(27);
+    expect(s.rows[0].done).toBe(21);
     expect(s.rows[0].done).toBeGreaterThan(s.rows[0].consistency.hits);
+    // Logged on the 10th and the 20th, but the activity only starts on the 17th.
     const partial = monthStats([daily('a', -10)], 2026, 8, TODAY, logs((_, d) => (d < TODAY && d.endsWith('0') ? 'min' : null)));
-    expect(partial.rows[0].done).toBe(2);
+    expect(partial.rows[0].done).toBe(1);
   });
   it('finds the best month among months with enough expected days', () => {
     const a = daily('a', -70);

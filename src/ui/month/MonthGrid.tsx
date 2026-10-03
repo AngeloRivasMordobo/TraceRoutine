@@ -91,7 +91,7 @@ export function MonthGrid({ y, m }: { y: number; m: number }) {
                         size={size}
                         isToday={c.isToday}
                         disabled={!c.editable}
-                        accessibilityLabel={t('month.cellLabel', { name: activity.name, date: formatShortDate(c.date), state: t(`states.${c.state}`) })}
+                        accessibilityLabel={`${t('month.cellLabel', { name: activity.name, date: formatShortDate(c.date), state: t(`states.${c.state}`) })}${c.letter ? ` · ${c.letter}` : ''}`}
                         onPress={c.editable ? () => onCell(activity, c.date) : undefined}
                         onLongPress={c.editable ? () => setSheet({ activity, date: c.date }) : undefined}
                       />

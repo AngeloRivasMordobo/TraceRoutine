@@ -30,7 +30,7 @@ export function Stepper({ value, min, max, onChange, accessibilityLabel }: { val
       onPress={() => onChange(Math.min(max, Math.max(min, value + delta)))}
       hitSlop={9}
       style={({ pressed }) => [styles.stepBtn, { borderColor: th.line }, pressed && { backgroundColor: rgba(th.accent, 0.14) }]}>
-      <Text style={[styles.stepGlyph, { color: th.icon }]}>{label}</Text>
+      <Text style={[styles.stepGlyph, { color: th.textSoft }]}>{label}</Text>
     </Pressable>
   );
   return (
@@ -54,7 +54,7 @@ export function Chip({ label, on, onPress, accessibilityLabel }: { label: string
         styles.chip,
         { borderColor: on ? th.accentLine : th.line, backgroundColor: on ? th.accentTint : pressed ? rgba(th.accent, 0.1) : 'transparent' },
       ]}>
-      <Text style={[styles.chipLabel, { color: on ? th.onAccentTint : th.subtle }]}>{label}</Text>
+      <Text style={[styles.chipLabel, { color: on ? th.onAccentTint : th.icon }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -113,10 +113,10 @@ const styles = StyleSheet.create({
   stepper: { flexDirection: 'row', alignItems: 'center', gap: space[4], alignSelf: 'flex-start' },
   stepBtn: { width: 26, height: 26, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   stepGlyph: { fontFamily: font.medium, fontSize: font.size.md },
-  stepValue: { fontFamily: font.mono, minWidth: space[8], textAlign: 'center', fontSize: font.size.md },
+  stepValue: { fontFamily: font.mono, fontWeight: '500', minWidth: space[8], textAlign: 'center', fontSize: font.size.md },
   chip: { minHeight: 36, paddingHorizontal: space[4], paddingVertical: space[2], borderRadius: radius.pill, borderWidth: 1, justifyContent: 'center' },
   chipLabel: { fontFamily: font.medium, fontSize: font.size.meta },
-  label: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: track('label', font.size.xs), marginTop: space[5], marginBottom: space[3] },
+  label: { fontFamily: font.medium, fontSize: font.size.meta, letterSpacing: track('label', font.size.meta), marginTop: space[5], marginBottom: space[3] },
   help: { fontFamily: font.family, fontSize: font.size.meta, lineHeight: 17, marginTop: space[2] },
   error: { fontFamily: font.family, fontSize: font.size.sm, marginTop: space[2] },
 });

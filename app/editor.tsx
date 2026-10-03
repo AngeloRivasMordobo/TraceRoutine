@@ -25,7 +25,7 @@ import { formatMonthYear, formatRelativeDay, localizedCycleSteps, t, weekdayLett
 import { appStore, newId, useActivity, useAppStore } from '@/src/store/appStore';
 import { Button, Seg } from '@/src/ui/components';
 import { Chip, ErrorText, FieldLabel, Help, Input, Sheet, Stepper } from '@/src/ui/controls';
-import { addCycleStep, anchorExamples, applyDuration, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
+import { addCycleStep, anchorExamples, applyDuration, cycleLegend, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
 import { ActivityIcon, ICON_KEYS, UIIcon } from '@/src/ui/icons';
 import { shiftMonth } from '@/src/ui/month/gridModel';
 import { TimeField } from '@/src/ui/TimeField';
@@ -59,6 +59,9 @@ export default function EditorScreen() {
   const [showErrors, setShowErrors] = useState(false);
   const [stepInput, setStepInput] = useState('');
   const [iconSheet, setIconSheet] = useState(false);
+  // The canvas shows eight icons at once; keep the chosen one visible even when it is not one of them.
+  const inlineIcons = ICON_KEYS.slice(0, 8);
+  const shownIcons = (inlineIcons as readonly string[]).includes(draft.icon) ? inlineIcons : [...ICON_KEYS.slice(0, 7), draft.icon as (typeof ICON_KEYS)[number]];
   const [pm, setPm] = useState(() => ({ y: parseKey(today).y, m: parseKey(today).m }));
 
   const errors = validateDraft(draft);
@@ -130,7 +133,7 @@ export default function EditorScreen() {
   // The canvas writes a short note on the right of the preview head; for a cycle it is
   // the legend that explains the letters painted into the cells.
   const previewNote = isCycle
-    ? cycleLetters(f.steps ?? []).map((letter, i) => `${letter}=${(f.steps ?? [])[i]?.label ?? ''}`).join(' · ')
+    ? cycleLegend(f.steps ?? [])
     : summary.flexible
       ? t('editor.previewNoteFlex')
       : anchor === 'relative'
@@ -153,7 +156,7 @@ export default function EditorScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('editor.cancel')}
           style={({ pressed }) => [styles.back, { borderColor: pressed ? th.accent : th.line }]}>
-          <UIIcon name="back" color={th.icon} size={14} />
+          <UIIcon name="back" color={th.textSoft} size={14} />
         </Pressable>
         <Text style={[styles.title, { color: th.text }]}>{existing ? t('editor.editTitle') : t('editor.newTitle')}</Text>
       </View>
@@ -165,17 +168,17 @@ export default function EditorScreen() {
 
           <FieldLabel>{t('editor.icon')}</FieldLabel>
           <View style={[styles.rowGap, { gap: space[3] }]}>
-            {ICON_KEYS.slice(0, 8).map((k) => (
+            {shownIcons.map((k) => (
               <Pressable key={k} accessibilityRole="button" accessibilityLabel={t('editor.chooseIcon', { name: t(`icons.${k}`) })} accessibilityState={{ selected: draft.icon === k }} onPress={() => patch({ icon: k })}
                 style={[styles.iconBtn, { borderColor: draft.icon === k ? th.accent : th.line, borderWidth: draft.icon === k ? 1.5 : 1, backgroundColor: draft.icon === k ? rgba(th.accent, 0.12) : 'transparent' }]}>
                 <ActivityIcon name={k} color={draft.icon === k ? th.accentText : th.icon} />
               </Pressable>
             ))}
-            <Chip label={t('editor.moreIcons')} on={!(ICON_KEYS as readonly string[]).slice(0, 8).includes(draft.icon)} onPress={() => setIconSheet(true)} />
+            <Chip label={t('editor.moreIcons')} on={!(inlineIcons as readonly string[]).includes(draft.icon)} onPress={() => setIconSheet(true)} />
           </View>
           <Sheet visible={iconSheet} onClose={() => setIconSheet(false)} title={t('editor.icon')}>
             <View style={[styles.rowGap, { gap: space[3] }]}>
-              {ICON_KEYS.slice(8).map((k) => (
+              {ICON_KEYS.map((k) => (
                 <Pressable key={k} accessibilityRole="button" accessibilityLabel={t('editor.chooseIcon', { name: t(`icons.${k}`) })} accessibilityState={{ selected: draft.icon === k }} onPress={() => { patch({ icon: k }); setIconSheet(false); }}
                   style={[styles.iconBtn, { borderColor: draft.icon === k ? th.accent : th.line, borderWidth: draft.icon === k ? 1.5 : 1, backgroundColor: draft.icon === k ? rgba(th.accent, 0.12) : 'transparent' }]}>
                   <ActivityIcon name={k} color={draft.icon === k ? th.accentText : th.icon} />
@@ -235,9 +238,9 @@ export default function EditorScreen() {
 
           {f.type === 'everyN' && (
             <View style={[styles.rowGap, { alignItems: 'center', gap: space[4], marginTop: space[4] }]}>
-              <Text style={[styles.freqText, { color: th.subtle }]}>{t('editor.every')}</Text>
+              <Text style={[styles.freqText, { color: th.icon }]}>{t('editor.every')}</Text>
               <Stepper value={n} min={1} max={30} onChange={(v) => patchFreq((r) => ({ ...r, n: v }))} accessibilityLabel={t('editor.days')} />
-              <Text style={[styles.freqText, { color: th.subtle }]}>{t('editor.days')}{n === 2 ? ` (${t('freq.everyOtherDay').toLowerCase()})` : n === 1 ? ` (${t('freq.daily').toLowerCase()})` : ''}</Text>
+              <Text style={[styles.freqText, { color: th.icon }]}>{t('editor.days')}{n === 2 ? ` (${t('freq.everyOtherDay').toLowerCase()})` : n === 1 ? ` (${t('freq.daily').toLowerCase()})` : ''}</Text>
             </View>
           )}
           {f.type === 'weekdays' && (
@@ -260,7 +263,7 @@ export default function EditorScreen() {
             <>
               <View style={[styles.rowGap, { alignItems: 'center', gap: space[4], marginTop: space[4] }]}>
                 <Stepper value={times} min={1} max={7} onChange={(v) => patchFreq((r) => ({ ...r, times: v }))} accessibilityLabel={t('editor.timesPerWeek')} />
-                <Text style={[styles.freqText, { color: th.subtle }]}>{t('editor.timesPerWeek')}</Text>
+                <Text style={[styles.freqText, { color: th.icon }]}>{t('editor.timesPerWeek')}</Text>
               </View>
               <Help>{t('editor.youChoose')}</Help>
             </>
@@ -302,11 +305,11 @@ export default function EditorScreen() {
 
           <View style={[styles.preview, { borderColor: th.line }]}>
             <View style={styles.previewHead}>
-              <Text style={[styles.previewTitle, { color: th.text }]}>{t('editor.preview', { month: formatMonthYear(pm.y, pm.m) })}</Text>
+              <Text style={[styles.previewTitle, { color: th.textSoft }]}>{t('editor.preview', { month: monthName.toUpperCase() })}</Text>
               {!!previewNote && <Text style={[styles.previewNote, { color: th.subtle }]}>{previewNote}</Text>}
             </View>
             <View style={styles.mini}>
-              {WEEK_ORDER.map((d) => <Text key={`h${d}`} style={[styles.miniHead, { color: th.muted }]}>{letters[d]}</Text>)}
+              {WEEK_ORDER.map((d) => <Text key={`h${d}`} style={[styles.miniHead, { color: th.subtle }]}>{letters[d]}</Text>)}
               {Array.from({ length: offset }).map((_, i) => <View key={`o${i}`} style={styles.miniSlot} />)}
               {Array.from({ length: daysN }).map((_, i) => {
                 const date = makeKey(pm.y, pm.m, i + 1);
@@ -408,7 +411,7 @@ const styles = StyleSheet.create({
   body: { padding: space[6] },
   rule: { borderTopWidth: 1, marginTop: space[8] },
   sectionHeading: { fontFamily: font.medium, fontSize: font.size.sm, marginTop: space[5] },
-  sectionLabel: { fontFamily: font.medium, fontSize: font.size.sm },
+  sectionLabel: { fontFamily: font.medium, fontSize: font.size.body },
   sectionHelp: { fontFamily: font.family, fontSize: font.size.meta, lineHeight: 17, marginTop: 2 },
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: space[4], marginTop: space[5] },
   rowGap: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
@@ -425,7 +428,7 @@ const styles = StyleSheet.create({
   previewNav: { flexDirection: 'row', gap: space[3], marginTop: space[3] },
   previewStep: { width: 26, height: 26, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   mini: { flexDirection: 'row', flexWrap: 'wrap' },
-  miniHead: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: font.family, fontSize: font.size.micro, marginBottom: space[1] },
+  miniHead: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: font.medium, fontSize: font.size.micro, marginBottom: space[1] },
   miniSlot: { width: `${100 / 7}%`, padding: 2 },
   miniCell: { width: '100%', aspectRatio: 1.15, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm },
   miniText: { fontSize: font.size.cell },

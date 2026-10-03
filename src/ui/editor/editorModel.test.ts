@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultRule } from '../../engine/presets';
-import { addCycleStep, anchorExamples, applyDuration, dateToTime, isValidTime, newDraft, previewSummary, removeCycleStep, timeToDate, toggleWeekday, validateDraft } from './editorModel';
+import { addCycleStep, anchorExamples, applyDuration, cycleLegend, dateToTime, isValidTime, newDraft, previewSummary, removeCycleStep, timeToDate, toggleWeekday, validateDraft } from './editorModel';
 
 const TODAY = '2026-08-27';
 
@@ -20,6 +20,11 @@ describe('editor model', () => {
     expect(validateDraft({ ...newDraft('x', TODAY), name: 'A', freq: { ...defaultRule(), type: 'weekdays', days: [] } })).toEqual(['days']);
     expect(isValidTime('07:30')).toBe(true);
     expect(isValidTime('7:30')).toBe(false);
+  });
+  it('the cycle legend names only the steps that carry a letter (TR-90)', () => {
+    expect(cycleLegend([{ label: 'Push' }, { label: 'Pull' }, { label: 'Legs' }, { label: 'Rest', rest: true }])).toBe('P=Push · U=Pull · L=Legs');
+    expect(cycleLegend([{ label: 'A' }, { label: 'Rest', rest: true }, { label: 'B' }, { label: 'Rest', rest: true }])).toBe('A=A · B=B');
+    expect(cycleLegend([])).toBe('');
   });
   it('a reminder time survives the round trip through the time picker, for every minute of the day (TR-107)', () => {
     for (let h = 0; h < 24; h++) {

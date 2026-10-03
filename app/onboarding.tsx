@@ -103,7 +103,7 @@ export default function OnboardingScreen() {
       </ScrollView>
 
       <View style={styles.bottom}>
-        <View style={styles.dots} accessibilityRole="progressbar" accessibilityLabel={t('onboarding.step', { n: step + 1 })}>
+        <View style={styles.dots} accessible accessibilityRole="progressbar" accessibilityLabel={t('onboarding.step', { n: step + 1 })} accessibilityValue={{ min: 1, max: 3, now: step + 1 }}>
           {[0, 1, 2].map((i) => <View key={i} style={[styles.dot, { backgroundColor: i === step ? accentRamp[400] : th.line }]} />)}
         </View>
         {step === 2
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   langLabel: { fontFamily: font.medium, fontSize: font.size.xs },
   page: { paddingHorizontal: space[10], paddingTop: space[8], justifyContent: 'center', flexGrow: 1 },
   cover: { alignItems: 'center' },
-  brand: { fontFamily: font.medium, fontSize: font.size.brand, letterSpacing: font.tracking.tight, marginTop: space[10] },
+  brand: { fontFamily: font.medium, fontSize: font.size.brand, letterSpacing: trackEm('title', font.size.brand), marginTop: space[10] },
   tagline: { fontFamily: font.family, fontSize: font.size.md, marginTop: space[4], textAlign: 'center' },
   promise: { fontFamily: font.family, fontSize: font.size.sm, lineHeight: 20, marginTop: space[6], maxWidth: 250, textAlign: 'center' },
   h: { fontFamily: font.medium, fontSize: font.size.title, letterSpacing: trackEm('title', font.size.title) },

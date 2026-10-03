@@ -5,7 +5,7 @@
 import { Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useTheme } from './theme';
-import { accentRamp, font, neutral, radius, rgba, space, TOUCH, track } from './tokens';
+import { accentRamp, font, radius, rgba, space, TOUCH, track } from './tokens';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 
@@ -43,8 +43,8 @@ export function Card({ children, style }: { children: React.ReactNode; style?: S
 
 export function Tag({ label, tone = 'neutral' }: { label: string; tone?: 'accent' | 'neutral' | 'outline' }) {
   const th = useTheme();
-  const bg = tone === 'accent' ? th.accentTint : tone === 'neutral' ? neutral[800] : 'transparent';
-  const color = tone === 'accent' ? th.onAccentTint : tone === 'neutral' ? neutral[100] : th.accent;
+  const bg = tone === 'accent' ? th.accentTint : tone === 'neutral' ? th.surface2 : 'transparent';
+  const color = tone === 'accent' ? accentRamp[100] : tone === 'neutral' ? th.text : th.accent;
   return (
     <View style={[styles.tag, { backgroundColor: bg, borderColor: tone === 'outline' ? th.accent : 'transparent' }]}>
       <Text style={[styles.tagLabel, { color }]}>{label}</Text>
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   buttonLabel: { fontFamily: font.medium, fontSize: font.size.control },
   card: { borderRadius: radius.lg, borderWidth: 1, padding: space[6] },
   tag: { alignSelf: 'flex-start', borderRadius: radius.tag, borderWidth: 1, paddingHorizontal: space[3], paddingVertical: space[1] },
-  tagLabel: { fontFamily: font.medium, fontSize: font.size.xs },
+  tagLabel: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: 0.22 },
   eyebrow: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: track('label', font.size.xs) },
   kicker: { fontFamily: font.medium, fontSize: font.size.meta, letterSpacing: track('kicker', font.size.meta) },
   title: { fontFamily: font.medium, fontSize: font.size.xl, letterSpacing: track('title', font.size.xl), marginTop: 4 },

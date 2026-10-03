@@ -63,12 +63,6 @@ export const weekdayLetters = (lang: Lang = current) => list('dates.weekdayLette
 export const monthNames = (lang: Lang = current) => list('dates.months', lang);
 export const monthShort = (lang: Lang = current) => list('dates.monthsShort', lang);
 
-/** "jueves 27 de agosto" · "Thursday, August 27" */
-export function formatLongDate(key: DateKey, lang: Lang = current): string {
-  const { m, d } = parseKey(key);
-  return t('dates.longDate', { weekday: weekdayNames(lang)[weekday(key)], day: d, month: monthNames(lang)[m - 1] }, lang);
-}
-
 /** "27 de agosto" · "August 27" — the canvas's Today title, without the weekday. */
 export function formatDayMonth(key: DateKey, lang: Lang = current): string {
   const { m, d } = parseKey(key);

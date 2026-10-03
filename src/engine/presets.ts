@@ -48,7 +48,7 @@ export function applyPreset(
     case 'everyN':
       // Keeps the rule's own N so the chip stays lit while the stepper moves. N = 2 belongs
       // to `everyOtherDay`, which has its own chip, so this one starts at 3.
-      return { ...r, type: 'everyN', n: r.type === 'everyN' && (rule.n ?? 2) !== 2 ? (rule.n as number) : 3 };
+      return { ...r, type: 'everyN', n: (rule.n ?? 2) !== 2 ? (rule.n as number) : 3 };
     case 'everyOtherDay':
       return { ...r, type: 'everyN', n: 2 };
     case 'mwf':

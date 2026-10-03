@@ -20,8 +20,11 @@ export function monthStats(activities: Activity[], y: number, m: number, today: 
 
 /** Every day in the window up to today that carries a done or minimum log. */
 function doneDays(activity: Activity, first: DateKey, last: DateKey, today: DateKey, L: LogLookup): number {
+  // Same window `consistency` counts over: inside the activity's own dates, never past today.
+  const from = isBefore(first, activity.start) ? activity.start : first;
+  const to = activity.end && isBefore(activity.end, last) ? activity.end : last;
   let n = 0;
-  for (let d = first; !isBefore(last, d) && !isBefore(today, d); d = addDays(d, 1)) if (isHit(L(activity.id, d))) n++;
+  for (let d = from; !isBefore(to, d) && !isBefore(today, d); d = addDays(d, 1)) if (isHit(L(activity.id, d))) n++;
   return n;
 }
 

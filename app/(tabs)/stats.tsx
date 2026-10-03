@@ -41,7 +41,7 @@ export default function StatsScreen() {
       accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => [styles.step, { borderColor: pressed ? th.accent : th.line }]}>
-      <UIIcon name={icon} color={th.muted} size={13} />
+      <UIIcon name={icon} color={th.icon} size={13} />
     </Pressable>
   );
 
@@ -118,7 +118,7 @@ export default function StatsScreen() {
             </View>
 
             <View style={[styles.trendCard, { borderColor: th.line }]}>
-              <Text style={[styles.trendTitle, { color: th.icon }]}>{t('stats.trend')}</Text>
+              <Text style={[styles.trendTitle, { color: th.textSoft }]}>{t('stats.trend')}</Text>
               {trend.enough ? (
                 <>
                   <View accessible accessibilityLabel={trendSummary(trend, lang)}>
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   barTop: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: space[1] },
   barName: { flex: 1, fontFamily: font.medium, fontSize: font.size.label },
   barDetail: { fontFamily: font.family, fontSize: font.size.meta },
-  barPct: { fontFamily: font.mono, fontSize: font.size.xs, width: 40, textAlign: 'right' },
+  barPct: { fontFamily: font.mono, fontWeight: '500', fontSize: font.size.xs, width: 40, textAlign: 'right' },
   track: { height: 5, borderRadius: 3, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 3 },
   dayCards: { flexDirection: 'row', gap: space[4], marginTop: space[8] },
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   dayLabel: { fontFamily: font.family, fontSize: font.size.meta, letterSpacing: trackEm('label', font.size.meta) },
   dayValue: { fontFamily: font.medium, fontSize: font.size.md, marginTop: space[2] },
   trendCard: { borderWidth: 1, borderRadius: radius.md, padding: space[5], marginTop: space[5] },
-  trendTitle: { fontFamily: font.medium, fontSize: font.size.xs, marginBottom: space[4] },
+  trendTitle: { fontFamily: font.medium, fontSize: font.size.body, marginBottom: space[4] },
   axis: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space[1] },
   axisText: { fontFamily: font.family, fontSize: 9.5 },
 });

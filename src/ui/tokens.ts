@@ -67,6 +67,8 @@ export interface Theme {
   faint: string;
   /** Icon glyph inside an outlined control: the canvas's neutral-400. */
   icon: string;
+  /** One step back from body text: the canvas's neutral-300 for secondary titles and chrome glyphs. */
+  textSoft: string;
   accent: string;
   /** Text color on top of a solid accent or activity fill. */
   onAccent: string;
@@ -99,6 +101,7 @@ export const dark: Theme = {
   subtle: neutral[600],
   faint: neutral[700],
   icon: neutral[400],
+  textSoft: neutral[300],
   accent: '#9184d9',
   onAccent: '#12141f',
   accentTint: accentRamp[800],
@@ -120,10 +123,11 @@ export const light: Theme = {
   surface2: neutral[300],
   line: neutral[400],
   text: neutral[900],
-  muted: neutral[600],
-  subtle: neutral[500],
-  faint: neutral[400],
+  muted: neutral[700],
+  subtle: neutral[600],
+  faint: neutral[500],
   icon: neutral[600],
+  textSoft: neutral[800],
   accent: accentRamp[600],
   onAccent: neutral[100],
   accentTint: accentRamp[200],
@@ -132,8 +136,8 @@ export const light: Theme = {
   accentText: accentRamp[700],
   pressed: accentRamp[700],
   danger: '#b3555a',
-  chrome: neutral[200],
-  lineStrong: neutral[400],
+  chrome: neutral[300],
+  lineStrong: neutral[500],
   section: accentRamp[100],
   sectionGlow: accentRamp[200],
 };
@@ -164,13 +168,13 @@ export const font = {
     control: 14,
     xs: 11,
     sm: 12.5,
+    body: 13,
     md: 15,
     lg: 17,
     xl: 22,
     title: 24,
     brand: 30,
   } as const,
-  tracking: { eyebrow: 1.4, tight: -0.4 } as const,
 } as const;
 
 /**
@@ -189,7 +193,7 @@ export const track = (role: keyof typeof TRACK_EM, size: number): number =>
  */
 const ambient = {
   sm: null,
-  md: { shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  md: { shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 9, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   lg: { shadowColor: '#000', shadowOpacity: 0.65, shadowRadius: 20, shadowOffset: { width: 0, height: -16 }, elevation: 16 },
 } as const;
 

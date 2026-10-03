@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { track } from '@/src/analytics';
@@ -118,6 +118,11 @@ export default function SettingsScreen() {
           <Row icon="info" label={t('settings.analytics')} help={t('settings.analyticsHelp')}>
             <Switch value={!analyticsOptOut} onValueChange={(on) => appStore.setAnalyticsOptOut(!on)} trackColor={{ true: accentRamp[600], false: th.line }} thumbColor={th.name === 'dark' ? neutral[100] : th.text} />
           </Row>
+          <ActionRow
+            icon="chat"
+            label={t('settings.feedback')}
+            onPress={() => void Linking.openURL(`mailto:hola@traceroutine.app?subject=${encodeURIComponent(t('settings.feedbackSubject'))}&body=${encodeURIComponent(`\n\n— v${version} · ${Constants.platform ? Object.keys(Constants.platform)[0] : ''}`)}`)}
+          />
           <ActionRow icon="trash" label={t('settings.deleteAll')} danger onPress={() => setDeleteStep(1)} />
         </View>
 
@@ -246,7 +251,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: space[6] },
   row: { flexDirection: 'row', alignItems: 'center', gap: space[4], minHeight: TOUCH, paddingVertical: 13, borderBottomWidth: 1 },
-  rowLabel: { fontFamily: font.family, fontSize: font.size.sm },
+  rowLabel: { fontFamily: font.family, fontSize: font.size.body },
   rowHelp: { fontFamily: font.family, fontSize: font.size.meta, marginTop: 2 },
   groupLabel: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: trackEm('label', font.size.xs), textTransform: 'uppercase', marginTop: space[8], marginBottom: space[3] },
   pill: { flexDirection: 'row', borderWidth: 1, borderRadius: radius.pill, overflow: 'hidden' },
@@ -254,7 +259,7 @@ const styles = StyleSheet.create({
   pillLabel: { fontFamily: font.medium, fontSize: font.size.xs },
   pro: { borderWidth: 1, borderRadius: radius.lg, padding: space[6], marginTop: space[10], overflow: 'hidden' },
   proHead: { flexDirection: 'row', alignItems: 'center', gap: space[3], marginBottom: space[2] },
-  proName: { fontFamily: font.medium, fontSize: font.size.sm },
+  proName: { fontFamily: font.medium, fontSize: font.size.body },
   proBody: { fontFamily: font.family, fontSize: font.size.xs, lineHeight: 18 },
   proNote: { fontFamily: font.family, fontSize: font.size.meta, marginTop: space[3] },
   archivedRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3], borderBottomWidth: 1 },

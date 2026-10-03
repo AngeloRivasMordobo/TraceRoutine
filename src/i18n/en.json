@@ -23,8 +23,6 @@
   },
   "today": {
     "kicker": "Today",
-    "dueCount": "{n} due",
-    "dueOne": "1 due",
     "freeDay": "Free day",
     "freeDayBody": "Nothing due today. We don't invent tasks.",
     "nextIs": "The next one is {name}, {when}.",
@@ -261,7 +259,9 @@
     "freeLimitArchive": "See archived",
     "freeLimitPro": "About Pro",
     "proNotified": "We'll let you know when it's ready",
-    "activeCount": "{count} of {limit} active activities"
+    "activeCount": "{count} of {limit} active activities",
+    "feedback": "Send feedback",
+    "feedbackSubject": "TraceRoutine feedback"
   },
   "onboarding": {
     "step1Title": "Not everything is daily",
@@ -348,7 +348,6 @@
     "today": "today",
     "tomorrow": "tomorrow",
     "yesterday": "yesterday",
-    "longDate": "{weekday}, {month} {day}",
     "monthYear": "{month} {year}",
     "shortDate": "{monthShort} {day}",
     "weekdayDay": "{weekday} {day}",

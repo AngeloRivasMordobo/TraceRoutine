@@ -17,6 +17,7 @@ import {
   CalendarDotsIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  ChatCircleIcon,
   ChartLineUpIcon,
   CheckCircleIcon,
   CheckIcon,
@@ -105,6 +106,7 @@ export const UI = {
   shuffle: ShuffleIcon,
   cycle: ArrowsClockwiseIcon,
   close: XIcon,
+  chat: ChatCircleIcon,
 } as const satisfies Record<string, Icon>;
 
 export type UIIconKey = keyof typeof UI;

@@ -2,7 +2,7 @@
  * Pure editor logic (TR-31 … TR-38): drafts, validation, anchor examples,
  * duration shortcuts and the preview summary. No React here so it is testable.
  */
-import { addDays, daysInMonth, isBefore, isDue, isValidKey, monthRange, nextDue, simulatePerfect, type Activity, type DateKey, type FrequencyRule } from '../../engine';
+import { addDays, cycleLetters, daysInMonth, isBefore, isDue, isValidKey, monthRange, nextDue, simulatePerfect, type Activity, type CycleStep, type DateKey, type FrequencyRule } from '../../engine';
 import { defaultRule, validateRule } from '../../engine/presets';
 
 export type DraftError = 'name' | 'days' | 'cycle' | 'end' | 'start' | 'unit' | 'time' | 'everyN' | 'perWeek';
@@ -23,6 +23,18 @@ export const isValidTime = (s: string): boolean => TIME_RE.test(s);
  * a fixed UTC day and the pickers are given timeZoneName "UTC", so no daylight-saving
  * gap or device time-zone change can shift the wall time on the way in or out.
  */
+/**
+ * The cycle legend the canvas writes beside the preview ("P=Push · U=Pull · L=Legs").
+ * Rest steps carry no letter, so they never appear in it.
+ */
+export function cycleLegend(steps: CycleStep[]): string {
+  return cycleLetters(steps)
+    .map((letter, i) => ({ letter, label: steps[i]?.label ?? '' }))
+    .filter((x) => !!x.letter)
+    .map((x) => `${x.letter}=${x.label}`)
+    .join(' · ');
+}
+
 export function timeToDate(time: string): Date {
   const [h, m] = isValidTime(time) ? time.split(':').map(Number) : [8, 0];
   return new Date(Date.UTC(2000, 0, 1, h, m));

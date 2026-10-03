@@ -23,8 +23,6 @@
   },
   "today": {
     "kicker": "Hoy",
-    "dueCount": "tocan {n}",
-    "dueOne": "toca 1",
     "freeDay": "Día libre",
     "freeDayBody": "Hoy no toca nada. No te inventamos tareas.",
     "nextIs": "El siguiente es {name}, {when}.",
@@ -261,11 +259,13 @@
     "freeLimitArchive": "Ver archivadas",
     "freeLimitPro": "Conocer Pro",
     "proNotified": "Te avisaremos cuando esté listo",
-    "activeCount": "{count} de {limit} actividades activas"
+    "activeCount": "{count} de {limit} actividades activas",
+    "feedback": "Enviar comentarios",
+    "feedbackSubject": "Comentarios sobre TraceRoutine"
   },
   "onboarding": {
     "step1Title": "No todo es diario",
-    "step1Body": "Entrenar día por medio, fisio L-M-V, leer 3 veces por semana. TraceRoutine modela tu frecuencia real — y solo te pide cuentas los días que tocan.",
+    "step1Body": "Entrenar día por medio, fisio L-X-V, leer 3 veces por semana. TraceRoutine modela tu frecuencia real — y solo te pide cuentas los días que tocan.",
     "step2Title": "Los días malos también cuentan",
     "step2Body": "Cada actividad tiene una versión mínima. En un día malo, cumplirla se registra distinto — pero no rompe tu constancia.",
     "step2Note": "Medimos constancia sobre los días que tocaban, no rachas.",
@@ -280,7 +280,7 @@
     "normalExample": "Correr 5 km",
     "badExample": "Caminar 10 min · cuenta como cumplida",
     "everyOther": "Día por medio",
-    "mwf": "L-M-V",
+    "mwf": "L-X-V",
     "threePerWeek": "3× por semana, tú eliges",
     "cycles": "Ciclos A/B/descanso",
     "exTraining": "entrenar",
@@ -348,7 +348,6 @@
     "today": "hoy",
     "tomorrow": "mañana",
     "yesterday": "ayer",
-    "longDate": "{weekday} {day} de {month}",
     "monthYear": "{month} {year}",
     "shortDate": "{day} {monthShort}",
     "weekdayDay": "{weekday} {day}",
