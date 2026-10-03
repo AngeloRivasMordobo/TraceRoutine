@@ -3,13 +3,13 @@
  * mode: 'skip' → reasons only · 'value' → number only · 'full' → state + value + reason.
  */
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import type { Activity, DateKey, LogState } from '../engine';
 import { formatShortDate, t } from '../i18n';
 import { track } from '../analytics';
 import { appStore, useLog } from '../store/appStore';
 import { Button } from './components';
-import { Chip, Help, Sheet, inputStyle } from './controls';
+import { Chip, Help, Input, Sheet } from './controls';
 import { useTheme } from './theme';
 import { space } from './tokens';
 
@@ -46,13 +46,13 @@ export function LogSheet({ activity, date, mode, visible, onClose }: { activity:
       {mode !== 'skip' && hasValue && state !== 'skip' && (
         <View>
           <Help>{`${t('today.valueHelp')}${activity.unit ? ` · ${activity.unit}` : ''}`}</Help>
-          <TextInput
+          <Input
             value={value}
             onChangeText={setValue}
             keyboardType="decimal-pad"
             placeholder={activity.unit ?? ''}
             placeholderTextColor={th.faint}
-            style={[inputStyle(th), { marginTop: space[3] }]}
+            style={[{ marginTop: space[3] }]}
             accessibilityLabel={t('month.value')}
           />
           {activity.record === 'minutes' && (

@@ -6,7 +6,7 @@ import { useAppStore } from '@/src/store/appStore';
 import { Eyebrow } from '@/src/ui/components';
 import { ActivityIcon } from '@/src/ui/icons';
 import { useTheme } from '@/src/ui/theme';
-import { font, radius, rgba, space, TOUCH, type ActivityColor } from '@/src/ui/tokens';
+import { font, radius, rgba, space, TOUCH, track, type ActivityColor } from '@/src/ui/tokens';
 
 /** `color` is what the editor is prefilled with; the list itself draws every tile in the accent. */
 type Suggestion = { key: string; icon: string; color: ActivityColor; preset: string };
@@ -44,7 +44,9 @@ export default function FirstActivityScreen() {
           </Pressable>
         </View>
         <View style={{ flex: 1 }} />
-        <Pressable onPress={() => router.replace('/(tabs)')} accessibilityRole="button" style={styles.skip}><Text style={{ color: th.muted }}>{t('firstActivity.skip')}</Text></Pressable>
+        <Pressable onPress={() => router.replace('/(tabs)')} accessibilityRole="button" style={styles.skip}>
+          {({ pressed }) => <Text style={{ color: pressed ? th.text : th.subtle, fontFamily: font.family, fontSize: font.size.sm }}>{t('firstActivity.skip')}</Text>}
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -53,7 +55,7 @@ export default function FirstActivityScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flex: 1, padding: space[6] },
-  display: { fontFamily: font.semibold, fontSize: font.size.display, letterSpacing: font.tracking.tight, marginTop: space[2] },
+  display: { fontFamily: font.medium, fontSize: font.size.title, letterSpacing: track('title', font.size.title), marginTop: space[2] },
   lead: { fontFamily: font.family, fontSize: font.size.md, marginTop: space[3] },
   opt: { flexDirection: 'row', alignItems: 'center', gap: space[4], minHeight: TOUCH + 12, padding: space[4], borderRadius: radius.md, borderWidth: 1 },
   icon: { width: TOUCH, height: TOUCH, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },

@@ -16,13 +16,13 @@ import { Cell } from '../Cell';
 import { ActivityIcon, UIIcon } from '../icons';
 import { LogSheet } from '../LogSheet';
 import { useTheme } from '../theme';
-import { activityColor, font, space } from '../tokens';
+import { accentRamp, activityColor, font, space } from '../tokens';
 import { buildMonthGrid } from './gridModel';
 
 /** Cell metrics from the canvas: a 9.5 px cell, 1.5 px apart, 3.5 px after Sunday. */
 const GAP = 1.5;
 const WEEK_GAP = 3.5;
-const MAX_CELL = 13;
+const CELL = 9.5;
 const H_PAD = space[6];
 
 export function MonthGrid({ y, m }: { y: number; m: number }) {
@@ -46,7 +46,7 @@ export function MonthGrid({ y, m }: { y: number; m: number }) {
   const n = grid.days.length;
   const weekBreaks = grid.days.filter((d, i) => d.isWeekEnd && i < n - 1).length;
   const gaps = (n - 1) * GAP + weekBreaks * (WEEK_GAP - GAP);
-  const size = Math.min(MAX_CELL, Math.max(6, (width - H_PAD * 2 - gaps) / n));
+  const size = Math.min(CELL, Math.max(6, (width - H_PAD * 2 - gaps) / n));
   const gapAfter = (i: number) => (i === n - 1 ? 0 : grid.days[i].isWeekEnd ? WEEK_GAP : GAP);
 
   const legendStates: CellState[] = ['done', 'min', 'skip', 'pending', 'missed', 'none'];
@@ -59,7 +59,7 @@ export function MonthGrid({ y, m }: { y: number; m: number }) {
             <View key={d.day} style={{ width: size, marginRight: gapAfter(i) }}>
               <Text
                 numberOfLines={1}
-                style={[styles.dayLabel, { color: d.isToday ? th.accent : th.muted, fontSize: Math.min(8.5, size * 0.8) }]}>
+                style={[styles.dayLabel, { color: d.isToday ? th.accentText : th.subtle, fontSize: Math.min(8.5, size * 0.8) }]}>
                 {d.label}
               </Text>
             </View>
@@ -75,10 +75,11 @@ export function MonthGrid({ y, m }: { y: number; m: number }) {
                   accessibilityRole="button"
                   accessibilityLabel={activity.name}
                   onPress={() => router.push({ pathname: '/editor', params: { id: activity.id } })}
+                  hitSlop={6}
                   style={styles.rowHead}>
                   <ActivityIcon name={activity.icon} color={hue} size={14} />
                   <Text style={[styles.rowName, { color: th.text }]} numberOfLines={1}>{activity.name}</Text>
-                  <Text style={[styles.rowFreq, { color: th.muted }]} numberOfLines={1}>{freqLabel(activity.freq)}</Text>
+                  <Text style={[styles.rowFreq, { color: th.subtle }]} numberOfLines={1}>{freqLabel(activity.freq)}</Text>
                   <Text style={[styles.rowPct, { color: hue }]}>{consistency.pct === null ? '–' : `${consistency.pct}%`}</Text>
                 </Pressable>
                 <View style={styles.cells}>
@@ -87,7 +88,6 @@ export function MonthGrid({ y, m }: { y: number; m: number }) {
                       <Cell
                         state={c.state}
                         color={hue}
-                        letter={size >= 11 ? c.letter : ''}
                         size={size}
                         isToday={c.isToday}
                         disabled={!c.editable}
@@ -106,7 +106,7 @@ export function MonthGrid({ y, m }: { y: number; m: number }) {
         <View style={styles.legend}>
           {legendStates.map((s) => (
             <View key={s} style={styles.legendItem}>
-              <Cell state={s} color={th.accent} size={10} />
+              <Cell state={s} color={accentRamp[500]} size={10} />
               <Text style={[styles.legendText, { color: th.muted }]}>{t(`states.${s}`)}</Text>
             </View>
           ))}
@@ -125,12 +125,12 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: H_PAD, paddingBottom: space[12] },
   dayStrip: { flexDirection: 'row', marginBottom: space[1] },
   dayLabel: { fontFamily: font.family, textAlign: 'center' },
-  rowHead: { flexDirection: 'row', alignItems: 'center', gap: space[2], marginBottom: space[1], minHeight: 20 },
-  rowName: { flex: 1, fontFamily: font.medium, fontSize: font.size.sm },
-  rowFreq: { fontFamily: font.family, fontSize: 10, marginRight: space[1], flexShrink: 1 },
-  rowPct: { fontFamily: font.semibold, fontSize: font.size.xs },
+  rowHead: { flexDirection: 'row', alignItems: 'center', gap: space[2], marginBottom: space[2] },
+  rowName: { flex: 1, fontFamily: font.medium, fontSize: font.size.label },
+  rowFreq: { fontFamily: font.family, fontSize: font.size.meta, marginRight: space[2], flexShrink: 1 },
+  rowPct: { fontFamily: font.mono, fontWeight: '500', fontSize: font.size.meta },
   cells: { flexDirection: 'row' },
-  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: space[4], marginTop: space[8] },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: space[4], marginTop: space[6] },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   legendText: { fontFamily: font.family, fontSize: 10 },
   help: { flexDirection: 'row', alignItems: 'flex-start', gap: space[2], marginTop: space[4] },

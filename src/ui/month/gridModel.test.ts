@@ -24,10 +24,10 @@ describe('month grid model', () => {
     expect(g.days[26].isToday).toBe(true);
     expect(g.days[29].isWeekEnd).toBe(true); // Sunday 30 closes the week
   });
-  it('labels day 1, every fifth day, today and the last day', () => {
+  it('labels day 1, every fifth day and today', () => {
     const g = buildMonthGrid([water], 2026, 8, TODAY, L);
     const labelled = g.days.filter((d) => d.label).map((d) => d.day);
-    expect(labelled).toEqual([1, 5, 10, 15, 20, 25, 27, 30, 31]);
+    expect(labelled).toEqual([1, 5, 10, 15, 20, 25, 27, 30]);
   });
   it('projects relative cycles into the future with letters', () => {
     const g = buildMonthGrid([gym], 2026, 8, TODAY, L);

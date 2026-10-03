@@ -4,9 +4,10 @@
  */
 import type { CycleStep, FrequencyRule } from './types';
 
-export type PresetId = 'daily' | 'everyOtherDay' | 'mwf' | 'threePerWeek' | 'weekends' | 'pushPullLegs';
+export type PresetId = 'daily' | 'everyOtherDay' | 'mwf' | 'threePerWeek' | 'everyN' | 'weekends' | 'pushPullLegs';
 
-export const PRESET_IDS: PresetId[] = ['daily', 'everyOtherDay', 'mwf', 'threePerWeek', 'weekends', 'pushPullLegs'];
+/** The canvas's order, including "every N days", whose N the stepper keeps moving. */
+export const PRESET_IDS: PresetId[] = ['daily', 'everyOtherDay', 'mwf', 'threePerWeek', 'everyN', 'weekends', 'pushPullLegs'];
 
 /** Default step labels (English). The i18n layer passes localized ones. */
 export const DEFAULT_CYCLE_STEPS: CycleStep[] = [
@@ -44,6 +45,10 @@ export function applyPreset(
   switch (id) {
     case 'daily':
       return { ...r, type: 'daily' };
+    case 'everyN':
+      // Keeps the rule's own N so the chip stays lit while the stepper moves. N = 2 belongs
+      // to `everyOtherDay`, which has its own chip, so this one starts at 3.
+      return { ...r, type: 'everyN', n: r.type === 'everyN' && (rule.n ?? 2) !== 2 ? (rule.n as number) : 3 };
     case 'everyOtherDay':
       return { ...r, type: 'everyN', n: 2 };
     case 'mwf':

@@ -9,7 +9,7 @@ import { Button } from '@/src/ui/components';
 import { UIIcon, type UIIconKey } from '@/src/ui/icons';
 import { Logo } from '@/src/ui/Logo';
 import { useTheme } from '@/src/ui/theme';
-import { accentRamp, activityColors, font, neutral, radius, space } from '@/src/ui/tokens';
+import { accentRamp, activityColors, font, neutral, radius, space, track as trackEm } from '@/src/ui/tokens';
 
 /**
  * Three-step onboarding, as the design canvas lays it out: a brand cover, the
@@ -45,7 +45,7 @@ export default function OnboardingScreen() {
       </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.dayLabel, { color: th.text }]}>{label}</Text>
-        <Text style={[styles.dayExample, { color: th.muted }]}>{example}</Text>
+        <Text style={[styles.dayExample, { color: th.subtle }]}>{example}</Text>
       </View>
     </View>
   );
@@ -58,8 +58,8 @@ export default function OnboardingScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('onboarding.language')}
           style={({ pressed }) => [styles.lang, { borderColor: pressed ? accentRamp[600] : th.line }]}>
-          <UIIcon name="globe" color={th.muted} size={13} />
-          <Text style={[styles.langLabel, { color: th.muted }]}>{lang.toUpperCase()}</Text>
+          <UIIcon name="globe" color={th.icon} size={13} />
+          <Text style={[styles.langLabel, { color: th.icon }]}>{lang.toUpperCase()}</Text>
         </Pressable>
       </View>
 
@@ -85,7 +85,7 @@ export default function OnboardingScreen() {
               <View key={f.name} style={[styles.freqRow, { borderColor: th.line }]}>
                 <UIIcon name={f.icon} color={accentRamp[400]} size={16} />
                 <Text style={[styles.freqName, { color: th.text }]}>{f.name}</Text>
-                <Text style={[styles.freqEx, { color: th.faint }]}>{f.ex}</Text>
+                <Text style={[styles.freqEx, { color: th.subtle }]}>{f.ex}</Text>
               </View>
             ))}
           </View>
@@ -103,15 +103,14 @@ export default function OnboardingScreen() {
       </ScrollView>
 
       <View style={styles.bottom}>
-        <View style={styles.dots}>
+        <View style={styles.dots} accessibilityRole="progressbar" accessibilityLabel={t('onboarding.step', { n: step + 1 })}>
           {[0, 1, 2].map((i) => <View key={i} style={[styles.dot, { backgroundColor: i === step ? accentRamp[400] : th.line }]} />)}
         </View>
-        <Text style={[styles.stepText, { color: th.faint }]}>{t('onboarding.step', { n: step + 1 })}</Text>
         {step === 2
           ? <Button label={t('onboarding.start')} onPress={() => finish(false)} />
           : <Button label={t('onboarding.next')} onPress={() => goTo(step + 1)} />}
         <Pressable onPress={() => finish(true)} accessibilityRole="button" style={styles.skip}>
-          <Text style={{ color: th.muted, fontFamily: font.family, fontSize: font.size.sm }}>{t('onboarding.skip')}</Text>
+          {({ pressed }) => <Text style={{ color: pressed ? th.text : th.subtle, fontFamily: font.family, fontSize: font.size.sm }}>{t('onboarding.skip')}</Text>}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -125,24 +124,23 @@ const styles = StyleSheet.create({
   langLabel: { fontFamily: font.medium, fontSize: font.size.xs },
   page: { paddingHorizontal: space[10], paddingTop: space[8], justifyContent: 'center', flexGrow: 1 },
   cover: { alignItems: 'center' },
-  brand: { fontFamily: font.medium, fontSize: 30, letterSpacing: font.tracking.tight, marginTop: space[10] },
+  brand: { fontFamily: font.medium, fontSize: font.size.brand, letterSpacing: font.tracking.tight, marginTop: space[10] },
   tagline: { fontFamily: font.family, fontSize: font.size.md, marginTop: space[4], textAlign: 'center' },
   promise: { fontFamily: font.family, fontSize: font.size.sm, lineHeight: 20, marginTop: space[6], maxWidth: 250, textAlign: 'center' },
-  h: { fontFamily: font.medium, fontSize: 24, letterSpacing: font.tracking.tight },
+  h: { fontFamily: font.medium, fontSize: font.size.title, letterSpacing: trackEm('title', font.size.title) },
   body: { fontFamily: font.family, fontSize: font.size.sm, lineHeight: 20, marginTop: space[4], marginBottom: space[8] },
   freqRow: { flexDirection: 'row', alignItems: 'center', gap: space[4], borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space[5], paddingVertical: space[4] },
   freqName: { flex: 1, fontFamily: font.medium, fontSize: font.size.sm },
-  freqEx: { fontFamily: font.family, fontSize: font.size.xs },
+  freqEx: { fontFamily: font.mono, fontSize: font.size.xs },
   dayCard: { borderWidth: 1, borderRadius: radius.md, padding: space[5], gap: space[4] },
   dayRow: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
   circle: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   circleHalf: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%' },
   dayLabel: { fontFamily: font.medium, fontSize: font.size.sm },
   dayExample: { fontFamily: font.family, fontSize: font.size.xs, marginTop: 2 },
-  note: { fontFamily: font.family, fontSize: 11.5, lineHeight: 18, marginTop: space[6] },
-  bottom: { padding: space[6], gap: space[4], alignItems: 'stretch' },
+  note: { fontFamily: font.family, fontSize: font.size.label, lineHeight: 18, marginTop: space[6] },
+  bottom: { paddingHorizontal: space[10], paddingVertical: space[6], gap: space[4], alignItems: 'stretch' },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: space[2] },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  stepText: { textAlign: 'center', fontFamily: font.family, fontSize: font.size.xs },
   skip: { alignItems: 'center', paddingVertical: space[3], borderRadius: radius.md },
 });

@@ -32,7 +32,7 @@ export default function MonthScreen() {
       accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => [styles.step, { borderColor: pressed ? th.accent : th.line }]}>
-      <UIIcon name={icon} color={th.muted} size={14} />
+      <UIIcon name={icon} color={th.icon} size={14} />
     </Pressable>
   );
 
@@ -41,7 +41,7 @@ export default function MonthScreen() {
       <View style={styles.top}>
         <View style={styles.headRow}>
           <View style={{ flex: 1 }}>
-            <Kicker>{t('tabs.month')}</Kicker>
+            <Kicker>{t('month.kicker')}</Kicker>
             <Title>{formatMonthYear(y, m)}</Title>
           </View>
           {step(-1, t('month.prev'), 'back')}
@@ -51,7 +51,7 @@ export default function MonthScreen() {
           <View style={{ flex: 1 }}><Bar pct={overall.pct ?? 0} height={5} /></View>
           <Text style={[styles.pct, { color: accentRamp[300] }]}>{overall.pct === null ? '–' : `${overall.pct}%`}</Text>
         </View>
-        <Text style={[styles.overall, { color: th.muted }]}>{`${t('month.overall')} · ${t('month.overallHelp')}`}</Text>
+        <Text style={[styles.overall, { color: th.subtle }]}>{`${t('month.overall')} · ${t('month.overallHelp')}`}</Text>
       </View>
       {active.length ? (
         <MonthGrid key={`${y}-${m}`} y={y} m={m} />
@@ -71,8 +71,8 @@ const styles = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
   step: { width: 34, height: 34, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: space[4], marginTop: space[5] },
-  pct: { fontFamily: font.medium, fontSize: font.size.sm },
-  overall: { fontFamily: font.family, fontSize: 10.5, marginTop: space[1], marginBottom: space[5] },
+  pct: { fontFamily: font.mono, fontWeight: '500', fontSize: font.size.mono },
+  overall: { fontFamily: font.family, fontSize: font.size.meta, marginTop: space[1], marginBottom: space[5] },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[6], padding: space[8] },
   emptyText: { fontFamily: font.medium, fontSize: font.size.lg, textAlign: 'center' },
 });

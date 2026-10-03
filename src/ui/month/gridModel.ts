@@ -12,8 +12,8 @@ export interface GridDay { day: number; weekday: number; isToday: boolean; isWee
 export interface MonthGrid { rows: GridRow[]; days: GridDay[]; overall: Consistency; todayIndex: number }
 
 /** The design labels day 1, every fifth day and today; the rest stay blank. */
-function dayLabel(day: number, isToday: boolean, n: number): string {
-  return day === 1 || day % 5 === 0 || isToday || day === n ? String(day) : '';
+function dayLabel(day: number, isToday: boolean): string {
+  return day === 1 || day % 5 === 0 || isToday ? String(day) : '';
 }
 
 export function buildMonthGrid(activities: Activity[], y: number, m: number, today: DateKey, L: LogLookup): MonthGrid {
@@ -29,7 +29,7 @@ export function buildMonthGrid(activities: Activity[], y: number, m: number, tod
     const isToday = date === today;
     if (isToday) todayIndex = d - 1;
     // Sunday closes the week, so the extra gap sits after it.
-    days.push({ day: d, weekday: wd, isToday, isWeekEnd: wd === 0, label: dayLabel(d, isToday, n) });
+    days.push({ day: d, weekday: wd, isToday, isWeekEnd: wd === 0, label: dayLabel(d, isToday) });
   }
 
   const rows: GridRow[] = active.map((a) => {

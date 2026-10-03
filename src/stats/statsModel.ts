@@ -8,14 +8,21 @@ import { shiftMonth } from '../ui/month/gridModel';
 export const MIN_DAYS_FOR_PATTERNS = 14;
 export const MIN_WEEKS_FOR_TREND = 2;
 
-export interface MonthRow { activity: Activity; consistency: Consistency }
+export interface MonthRow { activity: Activity; consistency: Consistency; /** Days actually logged as done or minimum, which a flexible rule can push past `consistency.hits`. */ done: number }
 
 export function monthStats(activities: Activity[], y: number, m: number, today: DateKey, L: LogLookup): { rows: MonthRow[]; overall: Consistency } {
   const { first, last } = monthRange(y, m);
   const rows = activities
-    .map((activity) => ({ activity, consistency: consistency(activity, first, last, today, L) }))
+    .map((activity) => ({ activity, consistency: consistency(activity, first, last, today, L), done: doneDays(activity, first, last, today, L) }))
     .filter((r) => r.consistency.expected > 0 || !r.activity.archived);
   return { rows, overall: aggregate(rows.map((r) => r.consistency)) };
+}
+
+/** Every day in the window up to today that carries a done or minimum log. */
+function doneDays(activity: Activity, first: DateKey, last: DateKey, today: DateKey, L: LogLookup): number {
+  let n = 0;
+  for (let d = first; !isBefore(last, d) && !isBefore(today, d); d = addDays(d, 1)) if (isHit(L(activity.id, d))) n++;
+  return n;
 }
 
 export interface MonthPoint { y: number; m: number; pct: number; expected: number }

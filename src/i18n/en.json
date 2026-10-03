@@ -32,7 +32,6 @@
     "doneOf": "{done} of {total} done",
     "hint": "Tap the circle to complete · long-press for the minimum · swipe left to skip",
     "minPrefix": "min: {text}",
-    "skippedToday": "Skipped today · tap the square to undo",
     "thisWeek": "{done} of {times} this week · you choose when",
     "cycleToday": "Today: {step} · cycle of {n}",
     "until": "until {date}",
@@ -56,7 +55,8 @@
     "valueHelp": "Optional. The check is what matters.",
     "noValue": "No value",
     "confirm": "Done",
-    "hintClose": "Close hint"
+    "hintClose": "Close hint",
+    "skippedUndo": "tap the circle to undo"
   },
   "freq": {
     "daily": "Every day",
@@ -71,12 +71,13 @@
     "neverPaid": "Your real frequency — never a paid feature"
   },
   "presets": {
-    "daily": "Every day",
+    "daily": "Daily",
     "everyOtherDay": "Every other day",
-    "mwf": "M · W · F",
+    "mwf": "M-W-F",
     "threePerWeek": "3× a week",
     "weekends": "Weekends",
-    "pushPullLegs": "Push / Pull / Legs"
+    "pushPullLegs": "P/U/L cycle",
+    "everyN": "Every N days"
   },
   "cycleSteps": {
     "push": "Push",
@@ -102,16 +103,16 @@
     "save": "Save",
     "create": "Create activity",
     "name": "Name",
-    "namePlaceholder": "e.g. Train, Read, Water the plants",
+    "namePlaceholder": "e.g. Water the plants",
     "icon": "Icon",
     "color": "Color",
-    "record": "What you log",
+    "record": "Log type",
     "recordCheck": "Just a check",
     "recordMinutes": "Minutes",
     "recordAmount": "An amount",
     "unitPlaceholder": "Unit: pages, km, reps",
     "minimal": "Minimum version",
-    "minimalPlaceholder": "e.g. Walk 10 min",
+    "minimalPlaceholder": "e.g. 1 page",
     "minimalHelp": "For bad days. Counts as done and doesn't break your consistency.",
     "frequency": "Frequency",
     "typeDaily": "Daily",
@@ -125,7 +126,7 @@
     "youChoose": "You pick the days.",
     "addStep": "+ Step",
     "addRest": "+ Rest",
-    "preview": "This is how {month} looks",
+    "preview": "{month} — due on the marked days",
     "previewDue": "Due {n} days in {month}",
     "previewToday": "Due today",
     "previewThen": "then {date}",
@@ -164,20 +165,23 @@
     "discard": "Discard",
     "keepEditing": "Keep editing",
     "chooseIcon": "Icon {name}",
-    "chooseColor": "Color {name}"
+    "chooseColor": "Color {name}",
+    "previewNoteFlex": "you pick the days",
+    "previewNoteRelative": "recalculates when you miss"
   },
   "month": {
     "overall": "Overall consistency",
     "overallHelp": "over the days that were due",
     "legend": "Legend",
-    "tapHelp": "Tap a cell to change it: done → minimum → skipped → empty.",
+    "tapHelp": "Tap a past cell to edit the past, no drama: done → minimum → skipped → empty.",
     "editCell": "{name} · {date}",
     "empty": "Empty",
     "value": "Value",
     "reason": "Reason",
     "prev": "Previous month",
     "next": "Next month",
-    "cellLabel": "{name}, {date}: {state}"
+    "cellLabel": "{name}, {date}: {state}",
+    "kicker": "Grid"
   },
   "stats": {
     "title": "Your consistency",
@@ -189,8 +193,7 @@
     "tooEarly": "Too early to tell. A week of logs and your numbers will appear.",
     "month": "{month} consistency",
     "perActivity": "Per activity",
-    "ofExpected": "{hits} of {expected}",
-    "bestMonthValue": "{month} · {pct}%",
+    "bestMonthValue": "Best month: {month}",
     "bestDayValue": "{day}",
     "worstDayValue": "{day}",
     "patterns": "Patterns",
@@ -201,7 +204,10 @@
     "tooEarlyTrend": "Two weeks of logs and the trend will appear.",
     "archived": "archived",
     "noData": "No data yet",
-    "weekOf": "week of {date}"
+    "weekOf": "week of {date}",
+    "kicker": "Statistics",
+    "times": "{n} times",
+    "sessions": "{n} sessions"
   },
   "settings": {
     "title": "Settings",
@@ -247,8 +253,6 @@
     "deleted": "Data deleted",
     "analytics": "Share anonymous usage stats",
     "analyticsHelp": "No activity names or texts. Turn it off whenever you like.",
-    "feedback": "Send feedback",
-    "feedbackSubject": "Feedback on TraceRoutine",
     "privacy": "Privacy",
     "terms": "Terms",
     "version": "Version {version}",
@@ -261,9 +265,9 @@
   },
   "onboarding": {
     "step1Title": "Not everything is daily",
-    "step1Body": "Train every other day. Physio Monday, Wednesday and Friday. Read 3 times a week. Your real frequency, not the one the app imposes.",
+    "step1Body": "Training every other day, physio M-W-F, reading 3 times a week. TraceRoutine models your real frequency — and only checks in on the days that count.",
     "step2Title": "Bad days count too",
-    "step2Body": "Normal day: Run 5 km. Bad day: Walk 10 min, and it counts as done.",
+    "step2Body": "Every activity has a minimum version. On a bad day, doing it logs differently — but never breaks your consistency.",
     "step2Note": "We measure consistency over the days that were due, not streaks.",
     "skip": "Skip",
     "next": "Next",
@@ -272,12 +276,12 @@
     "language": "Language",
     "step": "Step {n} of 3",
     "normalDay": "Normal day",
-    "badDay": "Bad day",
+    "badDay": "Bad day → minimum",
     "normalExample": "Run 5 km",
     "badExample": "Walk 10 min · counts as done",
     "everyOther": "Every other day",
-    "mwf": "Mon · Wed · Fri",
-    "threePerWeek": "3 times a week",
+    "mwf": "M-W-F",
+    "threePerWeek": "3× a week, you choose",
     "cycles": "A/B/rest cycles",
     "exTraining": "training",
     "exPhysio": "physio",
@@ -347,7 +351,8 @@
     "longDate": "{weekday}, {month} {day}",
     "monthYear": "{month} {year}",
     "shortDate": "{monthShort} {day}",
-    "weekdayDay": "{weekday} {day}"
+    "weekdayDay": "{weekday} {day}",
+    "dayMonth": "{month} {day}"
   },
   "icons": {
     "barbell": "barbell",
@@ -369,7 +374,8 @@
     "bike": "bike",
     "brain": "mind",
     "star": "star",
-    "heart": "heart"
+    "heart": "heart",
+    "paint": "paint brush"
   },
   "colors": {
     "accent": "violet",

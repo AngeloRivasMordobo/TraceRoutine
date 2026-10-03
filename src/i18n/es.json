@@ -32,7 +32,6 @@
     "doneOf": "{done} de {total} hechas",
     "hint": "Toca el círculo para completar · mantén presionado para la mínima · desliza para omitir",
     "minPrefix": "mín: {text}",
-    "skippedToday": "Omitida hoy · toca el cuadro para deshacer",
     "thisWeek": "{done} de {times} esta semana · tú eliges cuándo",
     "cycleToday": "Hoy: {step} · ciclo de {n}",
     "until": "hasta el {date}",
@@ -56,7 +55,8 @@
     "valueHelp": "Opcional. Lo importante es la marca.",
     "noValue": "Sin valor",
     "confirm": "Listo",
-    "hintClose": "Cerrar pista"
+    "hintClose": "Cerrar pista",
+    "skippedUndo": "toca el círculo para deshacer"
   },
   "freq": {
     "daily": "Todos los días",
@@ -71,12 +71,13 @@
     "neverPaid": "Tu frecuencia real — nunca será de pago"
   },
   "presets": {
-    "daily": "Todos los días",
+    "daily": "Diaria",
     "everyOtherDay": "Día por medio",
-    "mwf": "L · X · V",
+    "mwf": "L-X-V",
     "threePerWeek": "3 por semana",
-    "weekends": "Fin de semana",
-    "pushPullLegs": "Empuje / Jalón / Pierna"
+    "weekends": "Fines de semana",
+    "pushPullLegs": "Ciclo E/J/P",
+    "everyN": "Cada N días"
   },
   "cycleSteps": {
     "push": "Empuje",
@@ -102,16 +103,16 @@
     "save": "Guardar",
     "create": "Crear actividad",
     "name": "Nombre",
-    "namePlaceholder": "Ej. Entrenar, Leer, Regar plantas",
+    "namePlaceholder": "p. ej. Regar plantas",
     "icon": "Ícono",
     "color": "Color",
-    "record": "Qué registras",
+    "record": "Tipo de registro",
     "recordCheck": "Solo marcar",
     "recordMinutes": "Minutos",
     "recordAmount": "Una cantidad",
     "unitPlaceholder": "Unidad: páginas, km, repeticiones",
     "minimal": "Versión mínima",
-    "minimalPlaceholder": "Ej. Caminar 10 min",
+    "minimalPlaceholder": "p. ej. 1 página",
     "minimalHelp": "Para los días malos. Cuenta como cumplida y no rompe tu constancia.",
     "frequency": "Frecuencia",
     "typeDaily": "Diaria",
@@ -125,7 +126,7 @@
     "youChoose": "Tú eliges qué días.",
     "addStep": "+ Paso",
     "addRest": "+ Descanso",
-    "preview": "Así se ve {month}",
+    "preview": "{month} — te toca los días marcados",
     "previewDue": "Toca {n} días en {month}",
     "previewToday": "Toca hoy",
     "previewThen": "luego {date}",
@@ -164,20 +165,23 @@
     "discard": "Descartar",
     "keepEditing": "Seguir editando",
     "chooseIcon": "Ícono {name}",
-    "chooseColor": "Color {name}"
+    "chooseColor": "Color {name}",
+    "previewNoteFlex": "tú eliges qué días",
+    "previewNoteRelative": "se recalcula al fallar"
   },
   "month": {
     "overall": "Constancia global",
     "overallHelp": "sobre los días que tocaban",
     "legend": "Leyenda",
-    "tapHelp": "Toca una celda para cambiarla: hecha → mínima → omitida → vacía.",
+    "tapHelp": "Toca una celda pasada para corregir el pasado, sin drama: hecha → mínima → omitida → vacía.",
     "editCell": "{name} · {date}",
     "empty": "Vacía",
     "value": "Valor",
     "reason": "Motivo",
     "prev": "Mes anterior",
     "next": "Mes siguiente",
-    "cellLabel": "{name}, {date}: {state}"
+    "cellLabel": "{name}, {date}: {state}",
+    "kicker": "Cuadrícula"
   },
   "stats": {
     "title": "Tu constancia",
@@ -189,8 +193,7 @@
     "tooEarly": "Aún es pronto. Con una semana de registros aparecerán tus números.",
     "month": "Constancia de {month}",
     "perActivity": "Por actividad",
-    "ofExpected": "{hits} de {expected}",
-    "bestMonthValue": "{month} · {pct}%",
+    "bestMonthValue": "Mejor mes: {month}",
     "bestDayValue": "{day}",
     "worstDayValue": "{day}",
     "patterns": "Patrones",
@@ -201,7 +204,10 @@
     "tooEarlyTrend": "Con dos semanas de registros aparecerá la tendencia.",
     "archived": "archivada",
     "noData": "Sin datos todavía",
-    "weekOf": "semana del {date}"
+    "weekOf": "semana del {date}",
+    "kicker": "Estadísticas",
+    "times": "{n} veces",
+    "sessions": "{n} sesiones"
   },
   "settings": {
     "title": "Ajustes",
@@ -247,8 +253,6 @@
     "deleted": "Datos borrados",
     "analytics": "Compartir estadísticas de uso anónimas",
     "analyticsHelp": "Sin nombres de actividades ni textos. Puedes apagarlo cuando quieras.",
-    "feedback": "Enviar comentarios",
-    "feedbackSubject": "Comentarios sobre TraceRoutine",
     "privacy": "Privacidad",
     "terms": "Términos",
     "version": "Versión {version}",
@@ -261,9 +265,9 @@
   },
   "onboarding": {
     "step1Title": "No todo es diario",
-    "step1Body": "Entrenar día por medio. Fisio lunes, miércoles y viernes. Leer 3 veces por semana. Tu frecuencia real, no la que impone la app.",
+    "step1Body": "Entrenar día por medio, fisio L-M-V, leer 3 veces por semana. TraceRoutine modela tu frecuencia real — y solo te pide cuentas los días que tocan.",
     "step2Title": "Los días malos también cuentan",
-    "step2Body": "Día normal: Correr 5 km. Día malo: Caminar 10 min, y cuenta como cumplida.",
+    "step2Body": "Cada actividad tiene una versión mínima. En un día malo, cumplirla se registra distinto — pero no rompe tu constancia.",
     "step2Note": "Medimos constancia sobre los días que tocaban, no rachas.",
     "skip": "Saltar",
     "next": "Siguiente",
@@ -272,12 +276,12 @@
     "language": "Idioma",
     "step": "Paso {n} de 3",
     "normalDay": "Día normal",
-    "badDay": "Día malo",
+    "badDay": "Día malo → mínima",
     "normalExample": "Correr 5 km",
     "badExample": "Caminar 10 min · cuenta como cumplida",
     "everyOther": "Día por medio",
-    "mwf": "Lun · Mié · Vie",
-    "threePerWeek": "3 veces por semana",
+    "mwf": "L-M-V",
+    "threePerWeek": "3× por semana, tú eliges",
     "cycles": "Ciclos A/B/descanso",
     "exTraining": "entrenar",
     "exPhysio": "fisioterapia",
@@ -347,7 +351,8 @@
     "longDate": "{weekday} {day} de {month}",
     "monthYear": "{month} {year}",
     "shortDate": "{day} {monthShort}",
-    "weekdayDay": "{weekday} {day}"
+    "weekdayDay": "{weekday} {day}",
+    "dayMonth": "{day} de {month}"
   },
   "icons": {
     "barbell": "pesa",
@@ -369,7 +374,8 @@
     "bike": "bicicleta",
     "brain": "mente",
     "star": "estrella",
-    "heart": "corazón"
+    "heart": "corazón",
+    "paint": "pincel"
   },
   "colors": {
     "accent": "violeta",

@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { track } from '@/src/analytics';
 import { FREE_ACTIVE_LIMIT } from '@/src/store/limits';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   activePreset,
@@ -24,13 +24,13 @@ import {
 import { formatMonthYear, formatRelativeDay, localizedCycleSteps, t, weekdayLetters } from '@/src/i18n';
 import { appStore, newId, useActivity, useAppStore } from '@/src/store/appStore';
 import { Button, Seg } from '@/src/ui/components';
-import { Chip, ErrorText, FieldLabel, Help, Stepper, inputStyle } from '@/src/ui/controls';
+import { Chip, ErrorText, FieldLabel, Help, Input, Sheet, Stepper } from '@/src/ui/controls';
 import { addCycleStep, anchorExamples, applyDuration, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
 import { ActivityIcon, ICON_KEYS, UIIcon } from '@/src/ui/icons';
 import { shiftMonth } from '@/src/ui/month/gridModel';
 import { TimeField } from '@/src/ui/TimeField';
 import { useTheme } from '@/src/ui/theme';
-import { ACTIVITY_COLOR_KEYS, activityColor, activityColors, font, neutral, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
+import { ACTIVITY_COLOR_KEYS, accentRamp, activityColors, font, mix, neutral, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
 
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
@@ -58,6 +58,7 @@ export default function EditorScreen() {
   const [touched, setTouched] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [stepInput, setStepInput] = useState('');
+  const [iconSheet, setIconSheet] = useState(false);
   const [pm, setPm] = useState(() => ({ y: parseKey(today).y, m: parseKey(today).m }));
 
   const errors = validateDraft(draft);
@@ -121,25 +122,20 @@ export default function EditorScreen() {
   };
   const archive = () => { appStore.setArchived(draft.id, !draft.archived); dismiss(); };
 
-  const anchorCard = (value: 'calendar' | 'relative', title: string, body: string) => {
-    const on = anchor === value;
-    return (
-      <Pressable
-        accessibilityRole="radio"
-        accessibilityState={{ selected: on }}
-        onPress={() => patchFreq((r) => ({ ...r, anchor: value }))}
-        style={[styles.opt, { borderColor: on ? th.accent : th.line, backgroundColor: on ? rgba(th.accent, 0.08) : th.surface }]}>
-        <Text style={[styles.optTitle, { color: th.text }]}>{title}</Text>
-        <Text style={[styles.optBody, { color: th.muted }]}>{body}</Text>
-      </Pressable>
-    );
-  };
 
   const { first } = monthRange(pm.y, pm.m);
   const offset = (weekday(first) + 6) % 7;
   const daysN = daysInMonth(pm.y, pm.m);
-  const color = activityColor(draft.color);
   const monthName = formatMonthYear(pm.y, pm.m).split(' ')[0];
+  // The canvas writes a short note on the right of the preview head; for a cycle it is
+  // the legend that explains the letters painted into the cells.
+  const previewNote = isCycle
+    ? cycleLetters(f.steps ?? []).map((letter, i) => `${letter}=${(f.steps ?? [])[i]?.label ?? ''}`).join(' · ')
+    : summary.flexible
+      ? t('editor.previewNoteFlex')
+      : anchor === 'relative'
+        ? t('editor.previewNoteRelative')
+        : '';
   const summaryText = summary.flexible
     ? t('editor.previewFlex', { n: summary.count, month: monthName })
     : `${t('editor.previewDue', { n: summary.count, month: monthName })}${
@@ -157,31 +153,44 @@ export default function EditorScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('editor.cancel')}
           style={({ pressed }) => [styles.back, { borderColor: pressed ? th.accent : th.line }]}>
-          <UIIcon name="back" color={neutral[300]} size={14} />
+          <UIIcon name="back" color={th.icon} size={14} />
         </Pressable>
         <Text style={[styles.title, { color: th.text }]}>{existing ? t('editor.editTitle') : t('editor.newTitle')}</Text>
       </View>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <FieldLabel style={{ marginTop: 0 }}>{t('editor.name')}</FieldLabel>
-          <TextInput value={draft.name} onChangeText={(v) => patch({ name: v })} placeholder={t('editor.namePlaceholder')} placeholderTextColor={th.faint} maxLength={30} autoFocus={!existing} style={inputStyle(th)} accessibilityLabel={t('editor.name')} />
+          <Input value={draft.name} onChangeText={(v) => patch({ name: v })} placeholder={t('editor.namePlaceholder')} maxLength={30} autoFocus={!existing}  accessibilityLabel={t('editor.name')} />
           <ErrorText>{err('name')}</ErrorText>
 
           <FieldLabel>{t('editor.icon')}</FieldLabel>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowGap}>
-            {ICON_KEYS.map((k) => (
+          <View style={[styles.rowGap, { gap: space[3] }]}>
+            {ICON_KEYS.slice(0, 8).map((k) => (
               <Pressable key={k} accessibilityRole="button" accessibilityLabel={t('editor.chooseIcon', { name: t(`icons.${k}`) })} accessibilityState={{ selected: draft.icon === k }} onPress={() => patch({ icon: k })}
-                style={[styles.iconBtn, { borderColor: draft.icon === k ? th.accent : th.line, backgroundColor: th.surface }]}>
-                <ActivityIcon name={k} color={draft.icon === k ? color : th.muted} />
+                style={[styles.iconBtn, { borderColor: draft.icon === k ? th.accent : th.line, borderWidth: draft.icon === k ? 1.5 : 1, backgroundColor: draft.icon === k ? rgba(th.accent, 0.12) : 'transparent' }]}>
+                <ActivityIcon name={k} color={draft.icon === k ? th.accentText : th.icon} />
               </Pressable>
             ))}
-          </ScrollView>
+            <Chip label={t('editor.moreIcons')} on={!(ICON_KEYS as readonly string[]).slice(0, 8).includes(draft.icon)} onPress={() => setIconSheet(true)} />
+          </View>
+          <Sheet visible={iconSheet} onClose={() => setIconSheet(false)} title={t('editor.icon')}>
+            <View style={[styles.rowGap, { gap: space[3] }]}>
+              {ICON_KEYS.slice(8).map((k) => (
+                <Pressable key={k} accessibilityRole="button" accessibilityLabel={t('editor.chooseIcon', { name: t(`icons.${k}`) })} accessibilityState={{ selected: draft.icon === k }} onPress={() => { patch({ icon: k }); setIconSheet(false); }}
+                  style={[styles.iconBtn, { borderColor: draft.icon === k ? th.accent : th.line, borderWidth: draft.icon === k ? 1.5 : 1, backgroundColor: draft.icon === k ? rgba(th.accent, 0.12) : 'transparent' }]}>
+                  <ActivityIcon name={k} color={draft.icon === k ? th.accentText : th.icon} />
+                </Pressable>
+              ))}
+            </View>
+          </Sheet>
 
           <FieldLabel>{t('editor.color')}</FieldLabel>
           <View style={styles.rowGap}>
             {ACTIVITY_COLOR_KEYS.map((k) => (
               <Pressable key={k} accessibilityRole="button" accessibilityLabel={t('editor.chooseColor', { name: t(`colors.${k}`) })} accessibilityState={{ selected: draft.color === k }} onPress={() => patch({ color: k })}
-                style={[styles.swatch, { backgroundColor: activityColors[k] }, draft.color === k && { borderColor: activityColors[k], shadowColor: activityColors[k] }]} />
+                style={[styles.swatchRing, draft.color === k && { borderColor: activityColors[k] }]}>
+                <View style={[styles.swatch, { backgroundColor: activityColors[k] }]} />
+              </Pressable>
             ))}
           </View>
 
@@ -193,16 +202,18 @@ export default function EditorScreen() {
           />
           {draft.record === 'amount' && (
             <>
-              <TextInput value={draft.unit ?? ''} onChangeText={(v) => patch({ unit: v })} placeholder={t('editor.unitPlaceholder')} placeholderTextColor={th.faint} style={[inputStyle(th), { marginTop: space[3] }]} />
+              <Input value={draft.unit ?? ''} onChangeText={(v) => patch({ unit: v })} placeholder={t('editor.unitPlaceholder')} style={[{ marginTop: space[3] }]} />
               <ErrorText>{err('unit')}</ErrorText>
             </>
           )}
 
           <FieldLabel>{t('editor.minimal')}</FieldLabel>
-          <TextInput value={draft.minimal ?? ''} onChangeText={(v) => patch({ minimal: v })} placeholder={t('editor.minimalPlaceholder')} placeholderTextColor={th.faint} maxLength={40} style={inputStyle(th)} />
+          <Input value={draft.minimal ?? ''} onChangeText={(v) => patch({ minimal: v })} placeholder={t('editor.minimalPlaceholder')} maxLength={40}  />
           <Help>{t('editor.minimalHelp')}</Help>
 
-          <FieldLabel>{t('editor.frequency')}</FieldLabel>
+          <View style={[styles.rule, { borderTopColor: th.surface2 }]} />
+          <Text style={[styles.sectionHeading, { color: th.accentText }]}>{t('editor.frequency')}</Text>
+          <Help>{t('freq.neverPaid')}</Help>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowGap}>
             {PRESET_IDS.map((p) => (
               <Chip key={p} label={t(`presets.${p}`)} on={preset === p} onPress={() => patchFreq((r) => applyPreset(r, p, { cycleSteps: localizedCycleSteps(lang) }))} />
@@ -221,13 +232,12 @@ export default function EditorScreen() {
               onChange={(v) => patchFreq((r) => ({ ...r, type: v }))}
             />
           </View>
-          <Help>{t('freq.neverPaid')}</Help>
 
           {f.type === 'everyN' && (
-            <View style={[styles.rowGap, { alignItems: 'center', marginTop: space[4] }]}>
-              <Text style={{ color: th.text }}>{t('editor.every')}</Text>
+            <View style={[styles.rowGap, { alignItems: 'center', gap: space[4], marginTop: space[4] }]}>
+              <Text style={[styles.freqText, { color: th.subtle }]}>{t('editor.every')}</Text>
               <Stepper value={n} min={1} max={30} onChange={(v) => patchFreq((r) => ({ ...r, n: v }))} accessibilityLabel={t('editor.days')} />
-              <Text style={{ color: th.text }}>{t('editor.days')}{n === 2 ? ` (${t('freq.everyOtherDay').toLowerCase()})` : n === 1 ? ` (${t('freq.daily').toLowerCase()})` : ''}</Text>
+              <Text style={[styles.freqText, { color: th.subtle }]}>{t('editor.days')}{n === 2 ? ` (${t('freq.everyOtherDay').toLowerCase()})` : n === 1 ? ` (${t('freq.daily').toLowerCase()})` : ''}</Text>
             </View>
           )}
           {f.type === 'weekdays' && (
@@ -238,7 +248,7 @@ export default function EditorScreen() {
                   return (
                     <Pressable key={d} accessibilityRole="checkbox" accessibilityState={{ checked: on }} onPress={() => patchFreq((r) => toggleWeekday(r, d))}
                       style={[styles.dow, { backgroundColor: on ? th.accent : th.surface, borderColor: on ? th.accent : th.line }]}>
-                      <Text style={{ fontFamily: font.semibold, color: on ? th.onAccent : th.muted }}>{letters[d]}</Text>
+                      <Text style={{ fontFamily: font.medium, color: on ? th.onAccent : th.subtle }}>{letters[d]}</Text>
                     </Pressable>
                   );
                 })}
@@ -248,9 +258,9 @@ export default function EditorScreen() {
           )}
           {f.type === 'perWeek' && (
             <>
-              <View style={[styles.rowGap, { alignItems: 'center', marginTop: space[4] }]}>
+              <View style={[styles.rowGap, { alignItems: 'center', gap: space[4], marginTop: space[4] }]}>
                 <Stepper value={times} min={1} max={7} onChange={(v) => patchFreq((r) => ({ ...r, times: v }))} accessibilityLabel={t('editor.timesPerWeek')} />
-                <Text style={{ color: th.text }}>{t('editor.timesPerWeek')}</Text>
+                <Text style={[styles.freqText, { color: th.subtle }]}>{t('editor.timesPerWeek')}</Text>
               </View>
               <Help>{t('editor.youChoose')}</Help>
             </>
@@ -263,7 +273,7 @@ export default function EditorScreen() {
                 ))}
               </View>
               <View style={[styles.rowGap, { marginTop: space[3], alignItems: 'center' }]}>
-                <TextInput value={stepInput} onChangeText={setStepInput} placeholder={t('editor.stepPlaceholder')} placeholderTextColor={th.faint} maxLength={14} style={[inputStyle(th), { flex: 1 }]} />
+                <Input value={stepInput} onChangeText={setStepInput} placeholder={t('editor.stepPlaceholder')} maxLength={14} style={[{ flex: 1 }]} />
                 <Chip label={t('editor.addStep')} onPress={() => { patchFreq((r) => addCycleStep(r, stepInput)); setStepInput(''); }} />
                 <Chip label={t('editor.addRest')} onPress={() => patchFreq((r) => addCycleStep(r, t('cycleSteps.rest'), true))} />
               </View>
@@ -274,27 +284,30 @@ export default function EditorScreen() {
           {(f.type === 'everyN' || isCycle) && (
             <>
               <FieldLabel>{t('anchor.title')}</FieldLabel>
-              <View style={{ gap: space[3] }}>
-                {isCycle
-                  ? anchorCard('calendar', t('anchor.cycleCalendarTitle'), t('anchor.cycleCalendarBody'))
-                  : anchorCard('calendar', t('anchor.calendarTitle'), t('anchor.calendarBody', { b: ex.b, c: ex.c }))}
-                {isCycle
-                  ? anchorCard('relative', t('anchor.cycleRelativeTitle'), t('anchor.cycleRelativeBody'))
-                  : anchorCard('relative', t('anchor.relativeTitle'), t('anchor.relativeBody', { b: ex.b, d: ex.d, e: ex.e }))}
-              </View>
-              {!existing && <Help>{t('editor.anchorHelpNew')}</Help>}
+              <Seg<'calendar' | 'relative'>
+                options={[
+                  { value: 'calendar', label: isCycle ? t('anchor.cycleCalendarTitle') : t('anchor.calendarTitle') },
+                  { value: 'relative', label: isCycle ? t('anchor.cycleRelativeTitle') : t('anchor.relativeTitle') },
+                ]}
+                value={anchor}
+                onChange={(v) => patchFreq((r) => ({ ...r, anchor: v }))}
+              />
+              <Help>{`${
+                anchor === 'calendar'
+                  ? isCycle ? t('anchor.cycleCalendarBody') : t('anchor.calendarBody', { b: ex.b, c: ex.c })
+                  : isCycle ? t('anchor.cycleRelativeBody') : t('anchor.relativeBody', { b: ex.b, d: ex.d, e: ex.e })
+              }${!existing ? ` ${t('editor.anchorHelpNew')}` : ''}`}</Help>
             </>
           )}
 
-          <View style={[styles.preview, { borderColor: th.line, backgroundColor: th.surface }]}>
+          <View style={[styles.preview, { borderColor: th.line }]}>
             <View style={styles.previewHead}>
-              <Pressable onPress={() => setPm(shiftMonth(pm.y, pm.m, -1))} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('month.prev')}><Text style={[styles.nav, { color: th.muted }]}>‹</Text></Pressable>
-              <Text style={[styles.previewTitle, { color: th.muted }]}>{t('editor.preview', { month: formatMonthYear(pm.y, pm.m) }).toUpperCase()}</Text>
-              <Pressable onPress={() => setPm(shiftMonth(pm.y, pm.m, 1))} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('month.next')}><Text style={[styles.nav, { color: th.muted }]}>›</Text></Pressable>
+              <Text style={[styles.previewTitle, { color: th.text }]}>{t('editor.preview', { month: formatMonthYear(pm.y, pm.m) })}</Text>
+              {!!previewNote && <Text style={[styles.previewNote, { color: th.subtle }]}>{previewNote}</Text>}
             </View>
             <View style={styles.mini}>
-              {WEEK_ORDER.map((d) => <Text key={`h${d}`} style={[styles.miniHead, { color: th.faint }]}>{letters[d]}</Text>)}
-              {Array.from({ length: offset }).map((_, i) => <View key={`o${i}`} style={styles.miniCell} />)}
+              {WEEK_ORDER.map((d) => <Text key={`h${d}`} style={[styles.miniHead, { color: th.muted }]}>{letters[d]}</Text>)}
+              {Array.from({ length: offset }).map((_, i) => <View key={`o${i}`} style={styles.miniSlot} />)}
               {Array.from({ length: daysN }).map((_, i) => {
                 const date = makeKey(pm.y, pm.m, i + 1);
                 const due = summary.dueDays.has(date);
@@ -302,24 +315,45 @@ export default function EditorScreen() {
                 const flex = summary.flexible && inWin;
                 const isToday = date === today;
                 return (
-                  <View key={date} style={[styles.miniCell, { borderColor: due ? color : flex ? rgba(color, 0.6) : isToday ? th.accent : 'transparent', borderStyle: flex && !due ? 'dotted' : 'solid', backgroundColor: due ? color : 'transparent', opacity: inWin ? 1 : 0.3 }]}>
-                    <Text style={[styles.miniText, { color: due ? th.onAccent : isToday ? th.accent : th.muted }]}>{previewLetters.get(date) || i + 1}</Text>
+                  <View key={date} style={styles.miniSlot}>
+                    <View
+                      style={[
+                        styles.miniCell,
+                        {
+                          borderColor: isToday ? th.accent : 'transparent',
+                          borderWidth: isToday ? 1.5 : 0,
+                          backgroundColor: due ? accentRamp[700] : flex ? mix(th.bg, accentRamp[500], 0.1) : 'transparent',
+                          opacity: inWin ? 1 : 0.3,
+                        },
+                      ]}>
+                      <Text
+                        style={[
+                          styles.miniText,
+                          { fontFamily: due || flex ? font.medium : font.family, color: due ? accentRamp[100] : flex ? accentRamp[300] : th.faint },
+                        ]}>
+                        {previewLetters.get(date) || i + 1}
+                      </Text>
+                    </View>
                   </View>
                 );
               })}
             </View>
             <Text style={[styles.summary, { color: th.text }]}>{summaryText}</Text>
+            <View style={styles.previewNav}>
+              <Pressable onPress={() => setPm(shiftMonth(pm.y, pm.m, -1))} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('month.prev')} style={[styles.previewStep, { borderColor: th.line }]}><UIIcon name="back" color={th.icon} size={13} /></Pressable>
+              <Pressable onPress={() => setPm(shiftMonth(pm.y, pm.m, 1))} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('month.next')} style={[styles.previewStep, { borderColor: th.line }]}><UIIcon name="forward" color={th.icon} size={13} /></Pressable>
+            </View>
           </View>
 
           <View style={styles.twoCol}>
             <View style={{ flex: 1 }}>
               <FieldLabel>{t('editor.starts')}</FieldLabel>
-              <TextInput value={draft.start} onChangeText={(v) => patch({ start: v })} placeholder="2026-08-27" placeholderTextColor={th.faint} autoCapitalize="none" style={inputStyle(th)} />
+              <Input value={draft.start} onChangeText={(v) => patch({ start: v })} placeholder="2026-08-27" autoCapitalize="none"  />
               <ErrorText>{err('start')}</ErrorText>
             </View>
             <View style={{ flex: 1 }}>
               <FieldLabel>{t('editor.ends')}</FieldLabel>
-              <TextInput value={draft.end ?? ''} onChangeText={(v) => patch({ end: v || null })} placeholder="—" placeholderTextColor={th.faint} autoCapitalize="none" style={inputStyle(th)} />
+              <Input value={draft.end ?? ''} onChangeText={(v) => patch({ end: v || null })} placeholder="—" autoCapitalize="none"  />
               <ErrorText>{err('end')}</ErrorText>
             </View>
           </View>
@@ -332,15 +366,23 @@ export default function EditorScreen() {
           </View>
           <Help>{`${t('editor.endsHelp')} ${t('editor.dateHelp')}`}</Help>
 
-          <FieldLabel>{t('editor.reminder')}</FieldLabel>
-          <View style={[styles.rowGap, { alignItems: 'center' }]}>
-            <Switch value={!!draft.reminder} onValueChange={(on) => patch({ reminder: on ? '08:00' : null })} trackColor={{ true: th.accent, false: th.line }} thumbColor={th.text} />
+          <View style={[styles.rule, { borderTopColor: th.surface2 }]} />
+          <View style={styles.reminderRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sectionLabel, { color: th.text }]}>{t('editor.reminder')}</Text>
+              <Text style={[styles.sectionHelp, { color: th.subtle }]}>{t('editor.reminderHelp')}</Text>
+            </View>
             {!!draft.reminder && (
               <TimeField value={draft.reminder} onChange={(reminder) => patch({ reminder })} accessibilityLabel={t('editor.reminder')} />
             )}
+            <Switch
+              value={!!draft.reminder}
+              onValueChange={(on) => patch({ reminder: on ? '08:00' : null })}
+              trackColor={{ true: accentRamp[600], false: th.line }}
+              thumbColor={th.name === 'dark' ? neutral[100] : th.text}
+            />
           </View>
           <ErrorText>{err('time')}</ErrorText>
-          <Help>{t('editor.reminderHelp')}</Help>
 
           <View style={{ height: space[10] }} />
           <Button label={existing ? t('editor.save') : t('editor.create')} onPress={save} disabled={!draft.name.trim()} />
@@ -364,22 +406,29 @@ const styles = StyleSheet.create({
   back: { width: 32, height: 32, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: font.medium, fontSize: font.size.lg },
   body: { padding: space[6] },
+  rule: { borderTopWidth: 1, marginTop: space[8] },
+  sectionHeading: { fontFamily: font.medium, fontSize: font.size.sm, marginTop: space[5] },
+  sectionLabel: { fontFamily: font.medium, fontSize: font.size.sm },
+  sectionHelp: { fontFamily: font.family, fontSize: font.size.meta, lineHeight: 17, marginTop: 2 },
+  reminderRow: { flexDirection: 'row', alignItems: 'center', gap: space[4], marginTop: space[5] },
   rowGap: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
+  freqText: { fontFamily: font.family, fontSize: font.size.sm },
   iconBtn: { width: TOUCH, height: TOUCH, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  // The canvas marks the chosen colour with a ring set off from the ground.
-  swatch: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: 'transparent', shadowOpacity: 1, shadowRadius: 0, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
+  // The canvas marks the chosen colour with a ring set off from the ground by 2 px.
+  swatchRing: { width: 37, height: 37, borderRadius: 18.5, borderWidth: 1.5, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
+  swatch: { width: 30, height: 30, borderRadius: 15 },
   dow: { width: 40, height: 40, borderRadius: radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  opt: { padding: space[4], borderRadius: radius.md, borderWidth: 1.5 },
-  optTitle: { fontFamily: font.semibold, fontSize: font.size.md, marginBottom: 2 },
-  optBody: { fontFamily: font.family, fontSize: font.size.sm },
-  preview: { marginTop: space[8], borderWidth: 1, borderRadius: radius.lg, padding: space[4] },
-  previewHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space[3] },
-  previewTitle: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: font.tracking.eyebrow },
-  nav: { fontSize: 22, paddingHorizontal: space[3] },
+  preview: { marginTop: space[8], borderWidth: 1, borderRadius: radius.md, paddingVertical: space[4], paddingHorizontal: space[5] },
+  previewHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3], marginBottom: space[3] },
+  previewTitle: { flexShrink: 1, fontFamily: font.medium, fontSize: font.size.xs },
+  previewNote: { fontFamily: font.family, fontSize: font.size.xs, textAlign: 'right' },
+  previewNav: { flexDirection: 'row', gap: space[3], marginTop: space[3] },
+  previewStep: { width: 26, height: 26, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   mini: { flexDirection: 'row', flexWrap: 'wrap' },
-  miniHead: { width: `${100 / 7}%`, textAlign: 'center', fontSize: font.size.xs, marginBottom: space[1] },
-  miniCell: { width: `${100 / 7}%`, aspectRatio: 1.15, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: radius.sm, borderColor: 'transparent' },
-  miniText: { fontFamily: font.semibold, fontSize: font.size.xs },
+  miniHead: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: font.family, fontSize: font.size.micro, marginBottom: space[1] },
+  miniSlot: { width: `${100 / 7}%`, padding: 2 },
+  miniCell: { width: '100%', aspectRatio: 1.15, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm },
+  miniText: { fontSize: font.size.cell },
   summary: { fontFamily: font.family, fontSize: font.size.sm, marginTop: space[3] },
   twoCol: { flexDirection: 'row', gap: space[3] },
   danger: { minHeight: TOUCH, alignItems: 'center', justifyContent: 'center' },

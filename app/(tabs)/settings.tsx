@@ -1,7 +1,8 @@
 import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { track } from '@/src/analytics';
 import { activitiesCsv, backupSummary, logsCsv, parseBackup, toBackup } from '@/src/data/backup';
 import { pickTextFile, shareText } from '@/src/data/files';
@@ -10,12 +11,12 @@ import { getPermissionState, openSystemSettings, requestPermission, rescheduleRe
 import { appStore, useAppStore } from '@/src/store/appStore';
 import { FREE_ACTIVE_LIMIT } from '@/src/store/limits';
 import { Button, Kicker, Title } from '@/src/ui/components';
-import { Sheet, inputStyle } from '@/src/ui/controls';
+import { Input, Sheet } from '@/src/ui/controls';
 import { ActivityIcon, UIIcon, type UIIconKey } from '@/src/ui/icons';
 import { Logo } from '@/src/ui/Logo';
 import { TimeField } from '@/src/ui/TimeField';
 import { useTheme, type ThemeMode } from '@/src/ui/theme';
-import { accentRamp, activityColor, font, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
+import { accentRamp, activityColor, elevation, font, neutral, radius, space, TOUCH, track as trackEm } from '@/src/ui/tokens';
 
 
 /** Settings (TR-63 … TR-69). Every change applies instantly. */
@@ -104,7 +105,7 @@ export default function SettingsScreen() {
               : <Button label={t('reminders.enable')} onPress={enableReminders} />}
           </Row>
           <Row icon="bell" label={t('settings.morningSummary')} help={t('settings.morningSummaryHelp')}>
-            <Switch value={morningSummary} onValueChange={appStore.setMorningSummary} trackColor={{ true: th.accent, false: th.line }} thumbColor={th.text} />
+            <Switch value={morningSummary} onValueChange={appStore.setMorningSummary} trackColor={{ true: accentRamp[600], false: th.line }} thumbColor={th.name === 'dark' ? neutral[100] : th.text} />
           </Row>
           {morningSummary && (
             <Row icon="bell" label={t('settings.morningTime')}>
@@ -115,13 +116,8 @@ export default function SettingsScreen() {
           <ActionRow icon="download" label={t('settings.backupExport')} onPress={() => void exportBackup()} />
           <ActionRow icon="download" label={t('settings.backupImport')} onPress={() => void importBackup()} />
           <Row icon="info" label={t('settings.analytics')} help={t('settings.analyticsHelp')}>
-            <Switch value={!analyticsOptOut} onValueChange={(on) => appStore.setAnalyticsOptOut(!on)} trackColor={{ true: th.accent, false: th.line }} thumbColor={th.text} />
+            <Switch value={!analyticsOptOut} onValueChange={(on) => appStore.setAnalyticsOptOut(!on)} trackColor={{ true: accentRamp[600], false: th.line }} thumbColor={th.name === 'dark' ? neutral[100] : th.text} />
           </Row>
-          <ActionRow
-            icon="info"
-            label={t('settings.feedback')}
-            onPress={() => void Linking.openURL(`mailto:hola@traceroutine.app?subject=${encodeURIComponent(t('settings.feedbackSubject'))}&body=${encodeURIComponent(`\n\n— v${version} · ${Constants.platform ? Object.keys(Constants.platform)[0] : ''}`)}`)}
-          />
           <ActionRow icon="trash" label={t('settings.deleteAll')} danger onPress={() => setDeleteStep(1)} />
         </View>
 
@@ -141,12 +137,21 @@ export default function SettingsScreen() {
         )}
 
         {/* The Pro card: accent hairline over a fading tint, with the brand mark. */}
-        <View style={[styles.pro, { borderColor: accentRamp[800], backgroundColor: rgba(accentRamp[900], 0.55) }]}>
+        <View style={[styles.pro, { borderColor: accentRamp[800] }]}>
+          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+            <Defs>
+              <LinearGradient id="proGround" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={accentRamp[900]} stopOpacity={0.55} />
+                <Stop offset="1" stopColor={accentRamp[900]} stopOpacity={0} />
+              </LinearGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height="100%" fill="url(#proGround)" />
+          </Svg>
           <View style={styles.proHead}>
-            <Logo size={8} gap={2.5} />
+            <Logo size={8} gap={2.5} variant="compact" />
             <Text style={[styles.proName, { color: th.text }]}>{`${t('app.name')} Pro`}</Text>
           </View>
-          <Text style={[styles.proBody, { color: th.muted }]}>{t('settings.proBody')}</Text>
+          <Text style={[styles.proBody, { color: th.subtle }]}>{t('settings.proBody')}</Text>
           <Text style={[styles.proNote, { color: accentRamp[300] }]}>
             {t('settings.freeLimit', { limit: FREE_ACTIVE_LIMIT, left: Math.max(0, FREE_ACTIVE_LIMIT - activeCount) })}
           </Text>
@@ -171,12 +176,16 @@ export default function SettingsScreen() {
         <Button label={t('settings.deleteContinue')} variant="ghost" onPress={() => setDeleteStep(2)} />
       </Sheet>
       <Sheet visible={deleteStep === 2} onClose={() => { setDeleteStep(0); setTyped(''); }} title={t('settings.deleteType')}>
-        <TextInput value={typed} onChangeText={setTyped} autoCapitalize="characters" autoCorrect={false} placeholder={t('settings.deleteWord')} placeholderTextColor={th.faint} style={inputStyle(th)} />
+        <Input value={typed} onChangeText={setTyped} autoCapitalize="characters" autoCorrect={false} placeholder={t('settings.deleteWord')}  />
         <Pressable disabled={typed.trim().toUpperCase() !== t('settings.deleteWord')} onPress={() => void deleteAll()} accessibilityRole="button" style={[styles.deleteBtn, { borderColor: th.danger, opacity: typed.trim().toUpperCase() === t('settings.deleteWord') ? 1 : 0.4 }]}>
-          <Text style={{ fontFamily: font.semibold, color: th.danger }}>{t('settings.deleteAll')}</Text>
+          <Text style={{ fontFamily: font.medium, color: th.danger }}>{t('settings.deleteAll')}</Text>
         </Pressable>
       </Sheet>
-      {toast && <View style={[styles.toast, { backgroundColor: th.surface2, borderColor: th.line }]}><Text style={{ color: th.text }}>{toast}</Text></View>}
+      {toast && (
+        <View style={[styles.toast, { backgroundColor: th.surface2 }, elevation('md', th)]}>
+          <Text style={[styles.toastText, { color: th.text }]} numberOfLines={1} ellipsizeMode="tail">{toast}</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -195,7 +204,7 @@ function PillSeg<T extends string>({ options, value, onChange }: { options: { va
             accessibilityState={{ selected: on }}
             onPress={() => onChange(o.value)}
             style={[styles.pillOpt, on && { backgroundColor: accentRamp[800] }]}>
-            <Text style={[styles.pillLabel, { color: on ? accentRamp[200] : th.muted }]}>{o.label}</Text>
+            <Text style={[styles.pillLabel, { color: on ? th.onAccentTint : th.subtle }]}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -212,7 +221,7 @@ function ActionRow({ icon, label, onPress, danger }: { icon: UIIconKey; label: s
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.row, { borderBottomColor: th.surface2, opacity: pressed ? 0.6 : 1 }]}>
-      <UIIcon name={icon} color={danger ? th.danger : th.muted} size={16} />
+      <UIIcon name={icon} color={danger ? th.danger : th.icon} size={16} />
       <Text style={[styles.rowLabel, { color: tint, flex: 1 }]}>{label}</Text>
       {!danger && <UIIcon name="forward" color={th.faint} size={13} />}
     </Pressable>
@@ -223,10 +232,10 @@ function Row({ icon, label, help, children }: { icon: UIIconKey; label: string; 
   const th = useTheme();
   return (
     <View style={[styles.row, { borderBottomColor: th.surface2 }]}>
-      <UIIcon name={icon} color={th.muted} size={16} />
+      <UIIcon name={icon} color={th.icon} size={16} />
       <View style={{ flex: 1 }}>
         <Text style={[styles.rowLabel, { color: th.text }]}>{label}</Text>
-        {!!help && <Text style={[styles.rowHelp, { color: th.muted }]}>{help}</Text>}
+        {!!help && <Text style={[styles.rowHelp, { color: th.subtle }]}>{help}</Text>}
       </View>
       {children}
     </View>
@@ -237,20 +246,21 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: space[6] },
   row: { flexDirection: 'row', alignItems: 'center', gap: space[4], minHeight: TOUCH, paddingVertical: 13, borderBottomWidth: 1 },
-  rowLabel: { fontFamily: font.family, fontSize: 13 },
-  rowHelp: { fontFamily: font.family, fontSize: 10.5, marginTop: 2 },
-  groupLabel: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: font.tracking.eyebrow, textTransform: 'uppercase', marginTop: space[8], marginBottom: space[3] },
+  rowLabel: { fontFamily: font.family, fontSize: font.size.sm },
+  rowHelp: { fontFamily: font.family, fontSize: font.size.meta, marginTop: 2 },
+  groupLabel: { fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: trackEm('label', font.size.xs), textTransform: 'uppercase', marginTop: space[8], marginBottom: space[3] },
   pill: { flexDirection: 'row', borderWidth: 1, borderRadius: radius.pill, overflow: 'hidden' },
   pillOpt: { paddingHorizontal: 13, paddingVertical: 5, minHeight: 30, alignItems: 'center', justifyContent: 'center' },
   pillLabel: { fontFamily: font.medium, fontSize: font.size.xs },
-  pro: { borderWidth: 1, borderRadius: radius.lg, padding: space[6], marginTop: space[10] },
+  pro: { borderWidth: 1, borderRadius: radius.lg, padding: space[6], marginTop: space[10], overflow: 'hidden' },
   proHead: { flexDirection: 'row', alignItems: 'center', gap: space[3], marginBottom: space[2] },
-  proName: { fontFamily: font.medium, fontSize: 13 },
-  proBody: { fontFamily: font.family, fontSize: 11, lineHeight: 18 },
-  proNote: { fontFamily: font.family, fontSize: 10, marginTop: space[3] },
+  proName: { fontFamily: font.medium, fontSize: font.size.sm },
+  proBody: { fontFamily: font.family, fontSize: font.size.xs, lineHeight: 18 },
+  proNote: { fontFamily: font.family, fontSize: font.size.meta, marginTop: space[3] },
   archivedRow: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3], borderBottomWidth: 1 },
   archivedName: { flex: 1, fontFamily: font.family, fontSize: font.size.sm },
   deleteBtn: { minHeight: TOUCH, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: radius.md, marginTop: space[4] },
-  foot: { marginTop: space[10], fontSize: 10, fontFamily: font.family, textAlign: 'center' },
-  toast: { position: 'absolute', left: space[6], right: space[6], bottom: space[8], padding: space[4], borderRadius: radius.md, borderWidth: 1 },
+  foot: { marginTop: space[10], fontSize: font.size.meta, fontFamily: font.family, textAlign: 'center' },
+  toastText: { fontFamily: font.family, fontSize: font.size.label, lineHeight: 17 },
+  toast: { position: 'absolute', alignSelf: 'center', bottom: space[8], maxWidth: 340, paddingHorizontal: space[5], paddingVertical: space[3], borderRadius: radius.pill },
 });

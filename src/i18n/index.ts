@@ -69,6 +69,12 @@ export function formatLongDate(key: DateKey, lang: Lang = current): string {
   return t('dates.longDate', { weekday: weekdayNames(lang)[weekday(key)], day: d, month: monthNames(lang)[m - 1] }, lang);
 }
 
+/** "27 de agosto" · "August 27" — the canvas's Today title, without the weekday. */
+export function formatDayMonth(key: DateKey, lang: Lang = current): string {
+  const { m, d } = parseKey(key);
+  return t('dates.dayMonth', { day: d, month: monthNames(lang)[m - 1] }, lang);
+}
+
 /** "agosto 2026" · "August 2026" */
 export function formatMonthYear(y: number, m: number, lang: Lang = current): string {
   return t('dates.monthYear', { month: monthNames(lang)[m - 1], year: y }, lang);

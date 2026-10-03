@@ -9,7 +9,7 @@ export type DraftError = 'name' | 'days' | 'cycle' | 'end' | 'start' | 'unit' | 
 
 export function newDraft(id: string, today: DateKey): Activity {
   return {
-    id, name: '', icon: 'star', color: 'accent', record: 'check', unit: '', minimal: '',
+    id, name: '', icon: 'paint', color: 'sky', record: 'check', unit: '', minimal: '',
     start: today, end: null, reminder: '08:00', archived: false,
     freq: { ...defaultRule(), type: 'everyN', n: 2, anchor: 'calendar' },
   };

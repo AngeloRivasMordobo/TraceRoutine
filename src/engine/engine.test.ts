@@ -341,9 +341,17 @@ describe('presets and descriptions (TR-29)', () => {
   it('apply and detect are inverses for every preset', () => {
     for (const id of PRESET_IDS) expect(activePreset(applyPreset(defaultRule(), id))).toBe(id);
   });
-  it('changing a parameter unselects the preset', () => {
+  it('every other day owns n = 2; any other n is the "every N days" preset', () => {
     const r = applyPreset(defaultRule(), 'everyOtherDay');
-    expect(activePreset({ ...r, n: 3 })).toBeNull();
+    expect(activePreset(r)).toBe('everyOtherDay');
+    // The canvas keeps the "every N days" chip lit while the stepper moves.
+    expect(activePreset({ ...r, n: 3 })).toBe('everyN');
+    expect(activePreset({ ...r, n: 7 })).toBe('everyN');
+    expect(applyPreset({ ...r, n: 7 }, 'everyN').n).toBe(7);
+  });
+  it('changing a parameter unselects the preset', () => {
+    const r = applyPreset(defaultRule(), 'mwf');
+    expect(activePreset({ ...r, days: [1, 2] })).toBeNull();
   });
   it('localized cycle steps still match the cycle preset', () => {
     const es = applyPreset(defaultRule(), 'pushPullLegs', {

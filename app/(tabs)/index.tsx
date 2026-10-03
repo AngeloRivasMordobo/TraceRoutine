@@ -3,18 +3,17 @@ import { track } from '@/src/analytics';
 import { useMemo, useState } from 'react';
 import { Animated, FlatList, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { cycleStep, daysBetween, doneThisWeek, dueToday, isDue, isHit, nextDue, pendingSince, type Activity, type LogLookup } from '@/src/engine';
-import { formatLongDate, formatRelativeDay, formatShortDate, freqLabel, t } from '@/src/i18n';
+import { cycleStep, daysBetween, doneThisWeek, dueToday, isDue, isHit, nextDue, pendingSince, weekday, type Activity, type LogLookup } from '@/src/engine';
+import { formatDayMonth, formatRelativeDay, formatShortDate, freqLabel, t, weekdayNames } from '@/src/i18n';
 import { appStore, useAppStore, useLog, useLogLookup } from '@/src/store/appStore';
 import { Bar, Button, Card, Eyebrow, Kicker, Title } from '@/src/ui/components';
 import { Sheet } from '@/src/ui/controls';
 import { ActivityIcon, UIIcon } from '@/src/ui/icons';
 import { LogSheet } from '@/src/ui/LogSheet';
 import { useTheme } from '@/src/ui/theme';
-import { activityColor, font, mix, neutral, radius, rgba, space } from '@/src/ui/tokens';
+import { activityColor, font, mix, neutral, radius, rgba, space, track as trackEm } from '@/src/ui/tokens';
 
 type SheetMode = 'skip' | 'value' | 'menu' | null;
-const ORDER = { pending: 0, done: 1, min: 1, skip: 2 } as const;
 /** The design's check is a 40 px circle at the head of the row. */
 const CHECK = 40;
 
@@ -33,7 +32,7 @@ export default function TodayScreen() {
   const L = useLogLookup();
 
   const due = useMemo(
-    () => dueToday(activities, today, L).sort((a, b) => ORDER[L(a.id, today) ?? 'pending'] - ORDER[L(b.id, today) ?? 'pending']),
+    () => dueToday(activities, today, L),
     [activities, today, L],
   );
   const doneCount = due.filter((a) => isHit(L(a.id, today))).length;
@@ -57,8 +56,8 @@ export default function TodayScreen() {
           <View>
             <View style={styles.headRow}>
               <View style={{ flex: 1 }}>
-                <Kicker>{`${t('today.kicker')} · ${due.length === 1 ? t('today.dueOne') : t('today.dueCount', { n: due.length })}`}</Kicker>
-                <Title>{formatLongDate(today)}</Title>
+                <Kicker>{`${t('today.kicker')} · ${weekdayNames()[weekday(today)]}`}</Kicker>
+                <Title>{formatDayMonth(today)}</Title>
               </View>
               {due.length > 0 && (
                 <Text style={[styles.count, { color: th.muted }]}>{t('today.doneOf', { done: doneCount, total: due.length })}</Text>
@@ -69,15 +68,6 @@ export default function TodayScreen() {
                 <View style={styles.barWrap}>
                   <Bar pct={due.length ? (doneCount / due.length) * 100 : 0} height={4} solid />
                 </View>
-                {!hintDismissed && (
-                  <View style={styles.hint}>
-                    <UIIcon name="info" color={th.faint} size={13} />
-                    <Text style={[styles.hintText, { color: th.faint }]}>{t('today.hint')}</Text>
-                    <Pressable onPress={appStore.dismissHint} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('today.hintClose')}>
-                      <Text style={{ color: th.faint, fontSize: 16 }}>×</Text>
-                    </Pressable>
-                  </View>
-                )}
               </>
             ) : (
               <Card style={{ marginTop: space[8] }}>
@@ -90,7 +80,17 @@ export default function TodayScreen() {
         }
         renderItem={({ item }) => <ActivityRow a={item} today={today} />}
         ListFooterComponent={
-          <View style={{ marginTop: space[8] }}>
+          <>
+            {due.length > 0 && !hintDismissed && (
+              <View style={styles.hint}>
+                <UIIcon name="info" color={th.faint} size={13} />
+                <Text style={[styles.hintText, { color: th.faint }]}>{t('today.hint')}</Text>
+                <Pressable onPress={appStore.dismissHint} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('today.hintClose')}>
+                  <UIIcon name="close" color={th.faint} size={13} />
+                </Pressable>
+              </View>
+            )}
+            <View style={{ marginTop: space[8] }}>
             {upcoming.length > 0 && <Eyebrow>{t('today.comingUp')}</Eyebrow>}
             {upcoming.map(({ a, d }) => (
               // asChild renders a Slot, which rejects an array style on its child.
@@ -102,10 +102,8 @@ export default function TodayScreen() {
                 </Pressable>
               </Link>
             ))}
-            <Link href="/editor" asChild>
-              <Button label={`+ ${t('editor.newTitle')}`} variant="secondary" style={{ marginTop: space[8] }} />
-            </Link>
-          </View>
+            </View>
+          </>
         }
       />
     </SafeAreaView>
@@ -190,7 +188,7 @@ function ActivityRow({ a, today }: { a: Activity; today: string }) {
             style={({ pressed }) => [styles.check, check, pressed && { transform: [{ scale: 0.92 }] }]}>
             {/* The minimum fills the bottom half of the circle. */}
             {st === 'min' && <View style={[styles.checkHalf, { backgroundColor: color }]} />}
-            {hit && <UIIcon name="check" color={st === 'done' ? th.onAccent : neutral[200]} size={19} weight="bold" />}
+            {hit && <UIIcon name="check" color={st === 'done' ? th.onAccent : neutral[200]} size={19} />}
           </Pressable>
           <Pressable
             onPress={() => setSheet('menu')}
@@ -199,15 +197,15 @@ function ActivityRow({ a, today }: { a: Activity; today: string }) {
             style={{ flex: 1 }}>
             <View style={styles.nameRow}>
               <ActivityIcon name={a.icon} color={color} size={15} />
-              <Text style={[styles.name, { color: st === 'skip' ? th.muted : th.text }]} numberOfLines={1}>{a.name}</Text>
+              <Text style={[styles.name, { color: st === 'skip' ? th.subtle : th.text }]} numberOfLines={1}>{a.name}</Text>
               {!!tag && (
                 <View style={[styles.tag, { borderColor: rgba(st === 'skip' ? th.muted : color, 0.45) }]}>
                   <Text style={[styles.tagText, { color: st === 'skip' ? th.muted : color }]}>{tag}</Text>
                 </View>
               )}
             </View>
-            <Text style={[styles.sub, { color: th.muted }]} numberOfLines={2}>
-              {st === 'skip' ? t('today.skippedToday') : subtitle(a, today, L, !!st)}
+            <Text style={[styles.sub, { color: th.subtle }]} numberOfLines={2}>
+              {st === 'skip' ? t('today.skippedUndo') : subtitle(a, today, L, !!st)}
             </Text>
           </Pressable>
         </View>
@@ -228,11 +226,11 @@ const styles = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'baseline', gap: space[4] },
   count: { fontFamily: font.family, fontSize: 11.5 },
   barWrap: { marginTop: space[5], marginBottom: space[6] },
-  hint: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginBottom: space[6] },
+  hint: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: space[6] },
   hintText: { flex: 1, fontFamily: font.family, fontSize: font.size.xs, lineHeight: 17 },
   freeTitle: { fontFamily: font.medium, fontSize: font.size.xl, marginVertical: space[3] },
   rowWrap: { borderRadius: 12, marginBottom: space[3], overflow: 'hidden', justifyContent: 'center' },
-  skipHint: { position: 'absolute', right: space[6], fontFamily: font.semibold, fontSize: font.size.xs, letterSpacing: font.tracking.eyebrow },
+  skipHint: { position: 'absolute', right: space[6], fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: trackEm('label', font.size.xs) },
   row: { flexDirection: 'row', alignItems: 'center', gap: 11, borderWidth: 1, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 12 },
   check: { width: CHECK, height: CHECK, borderRadius: CHECK / 2, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   checkHalf: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%' },

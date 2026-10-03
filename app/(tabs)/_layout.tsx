@@ -29,7 +29,7 @@ function PlusTabButton() {
           styles.plus,
           { backgroundColor: pressed ? rgba(th.accent, 0.14) : th.bg, borderColor: accentRamp[500], shadowColor: accentRamp[500] },
         ]}>
-        <UIIcon name="plus" color={accentRamp[300]} size={18} weight="bold" />
+        <UIIcon name="plus" color={accentRamp[300]} size={18} />
       </Pressable>
     </View>
   );
@@ -43,8 +43,8 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: accentRamp[300],
-        tabBarInactiveTintColor: th.muted,
-        tabBarStyle: { backgroundColor: th.bg, borderTopColor: th.surface2 },
+        tabBarInactiveTintColor: th.subtle,
+        tabBarStyle: { backgroundColor: th.chrome, borderTopColor: th.surface2 },
         tabBarLabelStyle: { fontFamily: font.medium, fontSize: 9.5 },
         sceneStyle: { backgroundColor: th.bg },
       }}>
