@@ -74,7 +74,7 @@ export function Cell({ state, color, letter = '', size = 26, isToday, disabled, 
       box = { ...base, borderColor: rgba(neutral[800], 0.55) };
   }
   const content = (
-    <View style={[box, styles.center, isToday && { borderWidth: 1.5, borderColor: accentRamp[400] }]}>
+    <View style={[box, styles.center, isToday && { outlineWidth: 1.5, outlineColor: accentRamp[400], outlineStyle: 'solid' }]}>
       {half && <View style={[styles.half, { backgroundColor: color, borderBottomLeftRadius: r - 1, borderBottomRightRadius: r - 1 }]} />}
       {!!letter && state !== 'none' && (
         <Text style={[styles.letter, { color: textColor, fontSize: Math.max(8, size * 0.38) }]}>{letter}</Text>
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   /** The minimum is the bottom half of the cell, over the soft tint. */
   half: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%' },
-  letter: { fontFamily: font.bold, includeFontPadding: false },
+  letter: { fontFamily: font.medium, includeFontPadding: false },
 });
 
 export const cellRadius = radius;

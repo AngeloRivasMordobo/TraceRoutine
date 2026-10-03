@@ -47,6 +47,7 @@ import {
   StarIcon,
   TranslateIcon,
   TrashIcon,
+  XIcon,
   type Icon,
   type IconWeight,
 } from 'phosphor-react-native';
@@ -103,6 +104,7 @@ export const UI = {
   calendar: CalendarDotsIcon,
   shuffle: ShuffleIcon,
   cycle: ArrowsClockwiseIcon,
+  close: XIcon,
 } as const satisfies Record<string, Icon>;
 
 export type UIIconKey = keyof typeof UI;
