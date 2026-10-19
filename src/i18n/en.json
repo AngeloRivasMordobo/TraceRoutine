@@ -261,7 +261,8 @@
     "proNotified": "We'll let you know when it's ready",
     "activeCount": "{count} of {limit} active activities",
     "activeLimitTitle": "You have {limit} active activities",
-    "activeLimitBody": "That's as many as can be active at once. Archive one you no longer use (its history is kept) to add another.",
+    "activeLimitBody": "That's as many as can be active at once. To add another, open one you no longer use and tap Archive (its history is kept).",
+    "activeLimitSee": "See my activities",
     "feedback": "Send feedback",
     "feedbackSubject": "TraceRoutine feedback"
   },

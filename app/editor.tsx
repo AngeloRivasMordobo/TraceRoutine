@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { track } from '@/src/analytics';
-import { FREE_ACTIVE_LIMIT, freeLimitPrompt } from '@/src/store/limits';
+import { FREE_ACTIVE_LIMIT, freeLimitPrompt, frequencyHelp } from '@/src/store/limits';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -76,6 +76,7 @@ export default function EditorScreen() {
   const ex = anchorExamples(n);
   const letters = weekdayLetters(lang);
   const anchor = f.anchor ?? 'calendar';
+  const freqHelp = frequencyHelp(Platform.OS);
 
   const summary = previewSummary(draft, pm.y, pm.m, today);
   const previewLetters = (() => {
@@ -98,13 +99,15 @@ export default function EditorScreen() {
     if (errors.length) { setShowErrors(true); return; }
     if (limitReached) {
       track('free_limit_reached', { active: activeCount });
-      // iOS v1 sells nothing: the alert states the limit and offers archiving, with no Pro button (TR-69).
+      // iOS v1 sells nothing: the alert states the limit and leads to the activities, with no Pro button (TR-69).
       const prompt = freeLimitPrompt(Platform.OS);
-      Alert.alert(t(prompt.title, { limit: FREE_ACTIVE_LIMIT }), t(prompt.body), [
-        { text: t('editor.cancel'), style: 'cancel' },
-        { text: t('settings.freeLimitArchive'), onPress: () => { dismiss(); router.push('/(tabs)/settings'); } },
-        ...(prompt.offersPro ? [{ text: t('settings.freeLimitPro'), onPress: () => { dismiss(); router.push('/(tabs)/settings'); } }] : []),
-      ]);
+      Alert.alert(
+        t(prompt.title, { limit: FREE_ACTIVE_LIMIT }),
+        t(prompt.body),
+        prompt.buttons.map(({ label, goTo }) =>
+          goTo ? { text: t(label), onPress: () => { dismiss(); router.push(goTo); } } : { text: t(label), style: 'cancel' as const },
+        ),
+      );
       return;
     }
     appStore.upsertActivity({ ...draft, name: draft.name.trim(), unit: draft.unit?.trim() || null, minimal: draft.minimal?.trim() || null, reminder: draft.reminder || null });
@@ -223,7 +226,7 @@ export default function EditorScreen() {
 
           <View style={[styles.rule, { borderTopColor: th.surface2 }]} />
           <Text style={[styles.sectionHeading, { color: th.accentText }]}>{t('editor.frequency')}</Text>
-          <Help>{t('freq.neverPaid')}</Help>
+          {!!freqHelp && <Help>{t(freqHelp)}</Help>}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowGap}>
             {PRESET_IDS.map((p) => (
               <Chip key={p} label={t(`presets.${p}`)} on={preset === p} onPress={() => patchFreq((r) => applyPreset(r, p, { cycleSteps: localizedCycleSteps(lang) }))} />

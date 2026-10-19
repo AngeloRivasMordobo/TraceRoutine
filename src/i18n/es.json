@@ -261,7 +261,8 @@
     "proNotified": "Te avisaremos cuando esté listo",
     "activeCount": "{count} de {limit} actividades activas",
     "activeLimitTitle": "Tienes {limit} actividades activas",
-    "activeLimitBody": "Es el máximo que puede haber activas a la vez. Archiva una que ya no uses (su historial se conserva) para añadir otra.",
+    "activeLimitBody": "Es el máximo que puede haber activas a la vez. Para añadir otra, abre una que ya no uses y toca Archivar (su historial se conserva).",
+    "activeLimitSee": "Ver mis actividades",
     "feedback": "Enviar comentarios",
     "feedbackSubject": "Comentarios sobre TraceRoutine"
   },
