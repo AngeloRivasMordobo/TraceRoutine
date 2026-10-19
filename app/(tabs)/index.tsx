@@ -48,9 +48,14 @@ export default function TodayScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: th.bg }]} edges={['top']}>
+      {/* The value and skip sheets are opened from inside each row, so React Native counts their taps as
+          taps in this list: with the default ("never") the list took the first tap on "Done" to close the
+          decimal pad, and nothing was saved until a second tap. "handled" lets the sheet's buttons answer
+          the first tap; a tap on nothing in particular still closes the keyboard. */}
       <FlatList
         data={due}
         keyExtractor={(a) => a.id}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <View>

@@ -62,6 +62,7 @@ vi.mock('../data/persistence', async () => {
 
 let Settings: ComponentType;
 let Editor: ComponentType;
+let Today: ComponentType;
 
 /** What the screen shows on `os`, in `lang`. */
 function render(screen: ComponentType, os: 'ios' | 'android', lang: Lang): { html: string; text: string } {
@@ -76,6 +77,7 @@ beforeAll(async () => {
   await bootstrapStore(false);
   Settings = (await import('../../app/(tabs)/settings')).default;
   Editor = (await import('../../app/editor')).default;
+  Today = (await import('../../app/(tabs)/index')).default;
 });
 afterEach(() => {
   platform.OS = 'ios';
@@ -199,4 +201,25 @@ describe('Reminders permission', () => {
     expect(alerts).toEqual([]);
     for (const a of appStore.getState().activities) appStore.deleteActivity(a.id);
   });
+});
+
+describe("Today's value sheet with the decimal pad up", () => {
+  // The "How much?" sheet is mounted inside each row of the Today list. With the list's default
+  // keyboardShouldPersistTaps ("never"), the first tap on "Done" only closed the keyboard and nothing was
+  // logged. The list has to hand the first tap to the sheet's buttons, on both platforms (Android before
+  // 11 always treats a focused field as an open keyboard).
+  beforeAll(() => {
+    const today = appStore.getState().today;
+    appStore.upsertActivity({ ...newDraft('run', today), name: 'Run', record: 'amount', unit: 'km', freq: { type: 'daily' } });
+  });
+  afterAll(() => appStore.deleteActivity('run'));
+
+  for (const os of ['ios', 'android'] as const) {
+    it(`lets the first tap reach the sheet's buttons (${os})`, () => {
+      const { html, text } = render(Today, os, 'en');
+      expect(text).toContain('Run'); // the row is in the list
+      // SafeAreaView, then the list.
+      expect(html).toMatch(/^<div><div data-keyboard-should-persist-taps="handled">/);
+    });
+  }
 });

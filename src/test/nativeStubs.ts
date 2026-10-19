@@ -4,9 +4,22 @@
  * Host components keep their children; native-only pieces (SVG) render nothing. Only for tests:
  * `vi.mock('react-native', async () => (await import('../test/nativeStubs')).reactNativeStub)`.
  */
-import { createElement, isValidElement, type ReactNode } from 'react';
+import { createElement, Fragment, isValidElement, type ReactNode } from 'react';
 
-type Props = { children?: ReactNode; accessibilityLabel?: string; value?: unknown; onPress?: () => unknown; disabled?: boolean | null; visible?: boolean };
+type Props = {
+  children?: ReactNode;
+  accessibilityLabel?: string;
+  value?: unknown;
+  onPress?: () => unknown;
+  disabled?: boolean | null;
+  visible?: boolean;
+  /** Keyboard behaviour of scroll views and text fields, written out so a test can read it from the markup. */
+  keyboardShouldPersistTaps?: string;
+  keyboardDismissMode?: string;
+  keyboardType?: string;
+  autoCorrect?: boolean;
+  placeholder?: string;
+};
 
 /** The text inside a node, as a screen reader would read a button without a label. */
 function textOf(node: ReactNode): string {
@@ -17,10 +30,47 @@ function textOf(node: ReactNode): string {
   return '';
 }
 
+/** A prop as a data attribute, or nothing when the screen leaves it unset. */
+const attr = (v: unknown) => (v === undefined ? undefined : String(v));
+
 const host = (tag: string) =>
-  function Host({ children, accessibilityLabel, value }: Props) {
-    return createElement(tag, { 'aria-label': accessibilityLabel, 'data-value': value === undefined ? undefined : String(value) }, children);
+  function Host({ children, accessibilityLabel, value, keyboardShouldPersistTaps, keyboardDismissMode, keyboardType, autoCorrect, placeholder }: Props) {
+    return createElement(
+      tag,
+      {
+        'aria-label': accessibilityLabel,
+        'data-value': attr(value),
+        'data-keyboard-should-persist-taps': attr(keyboardShouldPersistTaps),
+        'data-keyboard-dismiss-mode': attr(keyboardDismissMode),
+        'data-keyboard-type': attr(keyboardType),
+        'data-auto-correct': attr(autoCorrect),
+        'data-placeholder': attr(placeholder),
+      },
+      children,
+    );
   };
+
+type ListProps<T> = Props & {
+  data: readonly T[];
+  renderItem: (info: { item: T; index: number }) => ReactNode;
+  keyExtractor?: (item: T, index: number) => string;
+  ListHeaderComponent?: ReactNode;
+  ListFooterComponent?: ReactNode;
+};
+
+const ListHost = host('div');
+
+/** A FlatList that renders every row between its header and footer, inside the same host as a ScrollView. */
+function FlatList<T>({ data, renderItem, keyExtractor, ListHeaderComponent, ListFooterComponent, ...rest }: ListProps<T>) {
+  const rows = data.map((item, index) => createElement(Fragment, { key: keyExtractor?.(item, index) ?? index }, renderItem({ item, index })));
+  return createElement(ListHost, rest, ListHeaderComponent, ...rows, ListFooterComponent);
+}
+
+/** Animated values and springs that do nothing: the markup only needs the views. */
+class AnimatedValue {
+  constructor(public value = 0) {}
+  setValue(v: number) { this.value = v; }
+}
 
 /** `Platform.OS` is mutable so one test file can render the same screen as iOS and as Android. */
 export const platform = { OS: 'ios' as string, select: <T,>(o: Record<string, T>): T | undefined => o[platform.OS] ?? o.default };
@@ -59,7 +109,9 @@ export const reactNativeStub = {
     return createElement('button', { 'aria-label': accessibilityLabel }, children);
   },
   ScrollView: host('div'),
-  FlatList: host('div'),
+  FlatList,
+  Animated: { View: host('div'), Value: AnimatedValue, spring: () => ({ start: () => {} }) },
+  PanResponder: { create: () => ({ panHandlers: {} }) },
   KeyboardAvoidingView: host('div'),
   TextInput: host('input'),
   Switch: host('input'),
