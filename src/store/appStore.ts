@@ -4,7 +4,8 @@
  */
 import { useSyncExternalStore } from 'react';
 import { todayKey, type Activity, type DateKey, type Log, type LogLookup, type LogState } from '../engine';
-import { detectLang, setLang as setI18nLang, type Lang } from '../i18n';
+import { resolveLang, setLang as setI18nLang, type Lang } from '../i18n';
+import { deviceLocaleTags } from '../i18n/device';
 import type { ThemeMode } from '../ui/theme';
 import { createMemoryPersister, createPersister, type Persister, type Snapshot } from '../data/persistence';
 import { setAnalyticsOptOut } from '../analytics';
@@ -30,7 +31,7 @@ const logKey = (activityId: string, date: DateKey) => `${activityId}|${date}`;
 
 let state: AppState = {
   ready: false,
-  lang: detectLang(undefined),
+  lang: 'en', // bootstrapStore() replaces it with the saved choice or the device language
   themeMode: 'dark',
   onboarded: false,
   hintDismissed: false,
@@ -53,7 +54,8 @@ function emit(next: Partial<AppState>) {
 export async function bootstrapStore(seedSamples = __DEV__): Promise<void> {
   persister = await createPersister();
   const snap = await persister.load();
-  const lang = (snap.settings.lang as Lang | undefined) ?? state.lang;
+  // First launch follows the device (es-* → Spanish); once the user picks a language, that wins.
+  const lang = resolveLang(snap.settings.lang, deviceLocaleTags());
   setI18nLang(lang);
   let activities = snap.activities;
   let logs = snap.logs;

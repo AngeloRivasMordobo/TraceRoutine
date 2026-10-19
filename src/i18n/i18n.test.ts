@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyPreset, defaultRule } from '../engine/presets';
-import { detectLang, formatDayMonth, formatMonthYear, formatRelativeDay, formatShortDate, freqLabel, interpolate, localizedCycleSteps, missingKeys, t } from './index';
+import { detectLang, formatDayMonth, formatMonthYear, formatRelativeDay, formatShortDate, freqLabel, interpolate, langFromLocales, localizedCycleSteps, missingKeys, resolveLang, t } from './index';
 
 describe('i18n dictionaries', () => {
   it('has no missing keys in either language', () => {
@@ -16,6 +16,23 @@ describe('i18n dictionaries', () => {
     expect(detectLang('es-DO')).toBe('es');
     expect(detectLang('en-US')).toBe('en');
     expect(detectLang(undefined)).toBe('en');
+  });
+  it('picks the first device language the app speaks, in the user order', () => {
+    expect(langFromLocales(['es-419'])).toBe('es');
+    expect(langFromLocales(['es_ES'])).toBe('es');
+    expect(langFromLocales(['fr-FR', 'es-MX', 'en-US'])).toBe('es');
+    expect(langFromLocales(['de-DE', 'en-GB', 'es-ES'])).toBe('en');
+    expect(langFromLocales(['pt-BR'])).toBe('en');
+    expect(langFromLocales(['et-EE'])).toBe('en');
+    expect(langFromLocales([])).toBe('en');
+    expect(langFromLocales([null, undefined, 'ES-us'])).toBe('es');
+  });
+  it('starts in the saved language, else in the device language', () => {
+    expect(resolveLang(undefined, ['es-CO'])).toBe('es');
+    expect(resolveLang('en', ['es-CO'])).toBe('en');
+    expect(resolveLang('es', ['en-US'])).toBe('es');
+    expect(resolveLang('fr', ['es-CO'])).toBe('es');
+    expect(resolveLang('', ['en-US'])).toBe('en');
   });
 });
 

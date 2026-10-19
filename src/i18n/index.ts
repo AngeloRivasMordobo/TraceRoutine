@@ -30,9 +30,26 @@ export function onLangChange(fn: (l: Lang) => void): () => void {
   return () => listeners.delete(fn);
 }
 
-/** Picks the device language once at startup ("es-DO" → es, anything else → en). */
+/** One locale tag to a language the app speaks ("es-DO" → es, anything else → en). */
 export function detectLang(locale: string | undefined): Lang {
-  return (locale ?? '').toLowerCase().startsWith('es') ? 'es' : 'en';
+  return langFromLocales([locale]);
+}
+
+/**
+ * The first of the device's preferred languages that the app speaks, in the user's own
+ * order ("fr-FR, es-MX" → es), which is how iOS picks a localization too. English otherwise.
+ */
+export function langFromLocales(tags: readonly (string | null | undefined)[]): Lang {
+  for (const tag of tags) {
+    const code = (tag ?? '').toLowerCase().split(/[-_]/)[0];
+    if ((LANGS as string[]).includes(code)) return code as Lang;
+  }
+  return 'en';
+}
+
+/** The language to start in: the one the user picked, if any; otherwise the device's. */
+export function resolveLang(saved: string | undefined, deviceTags: readonly (string | null | undefined)[]): Lang {
+  return saved && (LANGS as string[]).includes(saved) ? (saved as Lang) : langFromLocales(deviceTags);
 }
 
 type Params = Record<string, string | number>;
