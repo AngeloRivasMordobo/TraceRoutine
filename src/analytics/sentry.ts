@@ -1,12 +1,14 @@
 /**
  * Sentry (TR-77): crashes and unhandled errors, nothing else. No PII, no performance tracing
- * (saves the free quota), and the same opt-out switch as analytics.
+ * (saves the free quota), and the same opt-out switch as analytics. Off on iOS v1 (`analyticsAllowed`).
  */
 import * as Sentry from '@sentry/react-native';
+import { Platform } from 'react-native';
 import { isAnalyticsOptedOut } from './index';
+import { analyticsAllowed } from './policy';
 
 export function initSentry(): void {
-  const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
+  const dsn = analyticsAllowed(Platform.OS) ? process.env.EXPO_PUBLIC_SENTRY_DSN : undefined;
   Sentry.init({
     dsn,
     enabled: !!dsn,

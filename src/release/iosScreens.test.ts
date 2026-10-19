@@ -83,6 +83,9 @@ describe('Settings on iOS', () => {
       expect(text).not.toContain(t('settings.notifyMe', undefined, lang));
       expect(text).not.toMatch(PURCHASE_WORDS);
     });
+    it(`shows no analytics switch, since the build sends nothing (${lang})`, () => {
+      expect(render(Settings, 'ios', lang).text).not.toContain(t('settings.analytics', undefined, lang));
+    });
     it(`links the privacy policy and the support inbox (${lang})`, () => {
       const { text } = render(Settings, 'ios', lang);
       expect(text).toContain(t('settings.privacy', undefined, lang));
@@ -92,11 +95,12 @@ describe('Settings on iOS', () => {
 });
 
 describe('Settings on Android, as live on Google Play', () => {
-  it('keeps the Pro card with its counter and the interest button', () => {
+  it('keeps the Pro card, the interest button and the analytics switch', () => {
     const { text } = render(Settings, 'android', 'en');
     expect(text).toContain('TraceRoutine Pro');
     expect(text).toContain(t('settings.notifyMe', undefined, 'en'));
     expect(text).toContain(t('settings.privacy', undefined, 'en'));
+    expect(text).toContain(t('settings.analytics', undefined, 'en'));
   });
 });
 

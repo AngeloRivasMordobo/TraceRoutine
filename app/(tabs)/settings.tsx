@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { feedbackMailto, privacyPolicyUrl, SUPPORT_EMAIL } from '@/src/about/links';
 import { track } from '@/src/analytics';
+import { analyticsAllowed } from '@/src/analytics/policy';
 import { activitiesCsv, backupSummary, logsCsv, parseBackup, toBackup } from '@/src/data/backup';
 import { pickTextFile, shareText } from '@/src/data/files';
 import { formatShortDate, freqLabel, LANGS, t, type Lang } from '@/src/i18n';
@@ -116,9 +117,13 @@ export default function SettingsScreen() {
           <ActionRow icon="download" label={t('settings.exportCsv')} onPress={() => void exportCsv()} />
           <ActionRow icon="download" label={t('settings.backupExport')} onPress={() => void exportBackup()} />
           <ActionRow icon="download" label={t('settings.backupImport')} onPress={() => void importBackup()} />
-          <Row icon="info" label={t('settings.analytics')} help={t('settings.analyticsHelp')}>
-            <Switch value={!analyticsOptOut} onValueChange={(on) => appStore.setAnalyticsOptOut(!on)} trackColor={{ true: accentRamp[600], false: th.line }} thumbColor={th.name === 'dark' ? neutral[100] : th.text} />
-          </Row>
+          {/* iOS v1 sends nothing ("Data Not Collected"), so a sharing switch would describe something the
+              build does not do. Android keeps the row that is live on Google Play. */}
+          {analyticsAllowed(Platform.OS) && (
+            <Row icon="info" label={t('settings.analytics')} help={t('settings.analyticsHelp')}>
+              <Switch value={!analyticsOptOut} onValueChange={(on) => appStore.setAnalyticsOptOut(!on)} trackColor={{ true: accentRamp[600], false: th.line }} thumbColor={th.name === 'dark' ? neutral[100] : th.text} />
+            </Row>
+          )}
           <ActionRow icon="privacy" label={t('settings.privacy')} onPress={() => void Linking.openURL(privacyPolicyUrl(lang))} />
           <ActionRow
             icon="chat"

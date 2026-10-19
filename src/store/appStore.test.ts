@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Persister, Snapshot } from '../data/persistence';
+import { isAnalyticsOptedOut } from '../analytics';
+import type { Persister } from '../data/persistence';
 import { getLang } from '../i18n';
 import { appStore, bootstrapStore } from './appStore';
 
@@ -9,20 +10,18 @@ import { appStore, bootstrapStore } from './appStore';
 const device = vi.hoisted(() => ({ tags: ['en-US'] as string[], saved: {} as Record<string, string> }));
 
 vi.mock('../i18n/device', () => ({ deviceLocaleTags: () => device.tags }));
-// The real persister opens SQLite; a memory one seeded with what a previous launch saved stands in.
+// The real persister opens SQLite. This one keeps the settings in `device.saved`, which outlives a
+// launch the way the database does, so calling bootstrapStore() again is the next launch.
 vi.mock('../data/persistence', () => {
-  const memory = (): Persister => {
-    const snap: Snapshot = { activities: [], logs: [], settings: { ...device.saved } };
-    return {
-      load: async () => snap,
-      saveActivity: async () => {},
-      deleteActivity: async () => {},
-      setLog: async () => {},
-      setSetting: async (key, value) => { snap.settings[key] = value; },
-      clearAll: async () => { snap.settings = {}; },
-    };
-  };
-  return { createMemoryPersister: memory, createPersister: async () => memory() };
+  const disk = (): Persister => ({
+    load: async () => ({ activities: [], logs: [], settings: { ...device.saved } }),
+    saveActivity: async () => {},
+    deleteActivity: async () => {},
+    setLog: async () => {},
+    setSetting: async (key, value) => { device.saved[key] = value; },
+    clearAll: async () => { device.saved = {}; },
+  });
+  return { createMemoryPersister: disk, createPersister: async () => disk() };
 });
 
 describe('starting language', () => {
@@ -51,5 +50,27 @@ describe('starting language', () => {
     await bootstrapStore(false);
     expect(appStore.getState().lang).toBe('en');
     expect(getLang()).toBe('en');
+  });
+});
+
+describe('settings that outlive Delete all data and a replace import', () => {
+  beforeEach(() => { device.saved = {}; device.tags = ['en-US']; });
+
+  it('keeps the analytics opt-out after Delete all data', async () => {
+    await bootstrapStore(false);
+    appStore.setAnalyticsOptOut(true);
+    await appStore.clearAll();
+    await bootstrapStore(false); // next launch
+    expect(appStore.getState().analyticsOptOut).toBe(true);
+    expect(isAnalyticsOptedOut()).toBe(true);
+  });
+  it('keeps the analytics opt-out and the morning summary after a backup restored with Replace', async () => {
+    await bootstrapStore(false);
+    appStore.setAnalyticsOptOut(true);
+    appStore.setMorningSummary(false);
+    await appStore.importSnapshot({ activities: [], logs: [], settings: {} }, 'replace');
+    await bootstrapStore(false);
+    expect(appStore.getState().analyticsOptOut).toBe(true);
+    expect(appStore.getState().morningSummary).toBe(false);
   });
 });

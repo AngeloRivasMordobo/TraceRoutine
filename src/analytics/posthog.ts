@@ -1,10 +1,11 @@
 /**
  * PostHog sink (TR-77). Configured through EXPO_PUBLIC_POSTHOG_KEY / EXPO_PUBLIC_POSTHOG_HOST;
- * with no key the app keeps the console sink and sends nothing.
+ * with no key, and always on iOS v1 (`analyticsAllowed`), the app keeps the console sink and sends nothing.
  */
 import { PostHog } from 'posthog-react-native';
 import { Platform } from 'react-native';
 import { setAnalyticsSink, type Props, type Sink } from './index';
+import { analyticsAllowed } from './policy';
 
 let client: PostHog | null = null;
 
@@ -15,7 +16,7 @@ const json = (props?: Props): Record<string, string | number | boolean | null> |
 export function initPostHog(): PostHog | null {
   const key = process.env.EXPO_PUBLIC_POSTHOG_KEY;
   const host = process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com';
-  if (!key || client) return client;
+  if (!analyticsAllowed(Platform.OS) || !key || client) return client;
   client = new PostHog(key, {
     host,
     captureAppLifecycleEvents: false, // we only send our named events

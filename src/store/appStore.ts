@@ -162,11 +162,20 @@ export const appStore = {
   /** Import a backup. `replace` wipes first; `merge` keeps the most recent log per activity and date (imported wins on ties). */
   async importSnapshot(snap: Snapshot, mode: 'replace' | 'merge'): Promise<void> {
     if (mode === 'replace') {
+      // The wipe takes the settings table with it; write back what this session still shows, so the next
+      // launch matches it (the analytics opt-out and the morning summary used to come back as defaults).
       await persister.clearAll();
-      for (const key of ['lang', 'themeMode', 'onboarded', 'hintDismissed', 'morningSummary', 'morningTime', 'seeded'] as const) {
-        const v = key === 'lang' ? state.lang : key === 'themeMode' ? state.themeMode : key === 'morningTime' ? state.morningTime : '1';
-        await persister.setSetting(key, v);
-      }
+      const keep: Record<string, string> = {
+        lang: state.lang,
+        themeMode: state.themeMode,
+        onboarded: '1',
+        hintDismissed: '1',
+        morningSummary: state.morningSummary ? '1' : '0',
+        morningTime: state.morningTime,
+        analyticsOptOut: state.analyticsOptOut ? '1' : '0',
+        seeded: '1',
+      };
+      for (const [key, value] of Object.entries(keep)) await persister.setSetting(key, value);
     }
     const byId = new Map(mode === 'merge' ? state.activities.map((a) => [a.id, a] as const) : []);
     for (const a of snap.activities) byId.set(a.id, a);
@@ -181,6 +190,8 @@ export const appStore = {
     await persister.clearAll();
     await persister.setSetting('lang', lang);
     await persister.setSetting('seeded', '1');
+    // A privacy choice is not data to delete: someone who opted out stays opted out after the next launch.
+    await persister.setSetting('analyticsOptOut', state.analyticsOptOut ? '1' : '0');
     emit({ activities: [], logs: {}, onboarded: false, hintDismissed: false, proInterest: false });
   },
 };
