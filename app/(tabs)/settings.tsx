@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { feedbackMailto, privacyPolicyUrl, SUPPORT_EMAIL } from '@/src/about/links';
 import { track } from '@/src/analytics';
 import { activitiesCsv, backupSummary, logsCsv, parseBackup, toBackup } from '@/src/data/backup';
 import { pickTextFile, shareText } from '@/src/data/files';
@@ -118,10 +119,15 @@ export default function SettingsScreen() {
           <Row icon="info" label={t('settings.analytics')} help={t('settings.analyticsHelp')}>
             <Switch value={!analyticsOptOut} onValueChange={(on) => appStore.setAnalyticsOptOut(!on)} trackColor={{ true: accentRamp[600], false: th.line }} thumbColor={th.name === 'dark' ? neutral[100] : th.text} />
           </Row>
+          <ActionRow icon="privacy" label={t('settings.privacy')} onPress={() => void Linking.openURL(privacyPolicyUrl(lang))} />
           <ActionRow
             icon="chat"
             label={t('settings.feedback')}
-            onPress={() => void Linking.openURL(`mailto:hola@traceroutine.app?subject=${encodeURIComponent(t('settings.feedbackSubject'))}&body=${encodeURIComponent(`\n\n— v${version} · ${Constants.platform ? Object.keys(Constants.platform)[0] : ''}`)}`)}
+            onPress={() => {
+              // No mail app (it can be deleted on iOS): show the address instead of failing silently.
+              Linking.openURL(feedbackMailto(t('settings.feedbackSubject'), version, Constants.platform ? Object.keys(Constants.platform)[0] : ''))
+                .catch(() => Alert.alert(t('settings.feedback'), SUPPORT_EMAIL));
+            }}
           />
           <ActionRow icon="trash" label={t('settings.deleteAll')} danger onPress={() => setDeleteStep(1)} />
         </View>
