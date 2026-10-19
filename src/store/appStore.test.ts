@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { isAnalyticsOptedOut } from '../analytics';
 import type { Persister } from '../data/persistence';
 import { getLang } from '../i18n';
+import { newDraft } from '../ui/editor/editorModel';
 import { appStore, bootstrapStore } from './appStore';
 
 // __DEV__ is a React Native global; tests run in node.
@@ -133,5 +134,35 @@ describe('settings that outlive Delete all data and a replace import', () => {
     await bootstrapStore(false);
     expect(appStore.getState().analyticsOptOut).toBe(true);
     expect(appStore.getState().morningSummary).toBe(false);
+  });
+});
+
+describe('bringing an activity back from the archive', () => {
+  beforeEach(async () => {
+    device.saved = {};
+    await bootstrapStore(false);
+    for (const a of appStore.getState().activities) appStore.deleteActivity(a.id);
+  });
+  const add = (id: string, archived = false) => appStore.upsertActivity({ ...newDraft(id, appStore.getState().today), name: id, archived });
+  const archivedIds = () => appStore.getState().activities.filter((a) => a.archived).map((a) => a.id);
+
+  it('is refused while 5 are active, and nothing changes', () => {
+    ['a1', 'a2', 'a3', 'a4', 'a5'].forEach((id) => add(id));
+    add('old', true);
+    expect(appStore.setArchived('old', false)).toBe(false);
+    expect(archivedIds()).toEqual(['old']);
+    expect(appStore.activeCount()).toBe(5);
+  });
+  it('works below the limit', () => {
+    ['a1', 'a2', 'a3', 'a4'].forEach((id) => add(id));
+    add('old', true);
+    expect(appStore.setArchived('old', false)).toBe(true);
+    expect(archivedIds()).toEqual([]);
+    expect(appStore.activeCount()).toBe(5);
+  });
+  it('never stops archiving', () => {
+    ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'].forEach((id) => add(id));
+    expect(appStore.setArchived('a6', true)).toBe(true);
+    expect(appStore.activeCount()).toBe(5);
   });
 });

@@ -9,6 +9,7 @@ import { deviceLocaleTags } from '../i18n/device';
 import type { ThemeMode } from '../ui/theme';
 import { createMemoryPersister, createPersister, type Persister, type Snapshot } from '../data/persistence';
 import { setAnalyticsOptOut } from '../analytics';
+import { isActive, passesActiveLimit } from './limits';
 import { sampleActivities, sampleLogs } from './sample';
 
 export interface AppState {
@@ -138,9 +139,17 @@ export const appStore = {
     emit({ activities });
     void persister.saveActivity(a);
   },
-  setArchived(id: string, archived: boolean) {
+  /**
+   * Archive an activity or bring it back. Bringing one back when the active limit is already reached
+   * changes nothing and returns false, so the caller can say why; archiving always succeeds.
+   */
+  setArchived(id: string, archived: boolean): boolean {
     const a = state.activities.find((x) => x.id === id);
-    if (a) appStore.upsertActivity({ ...a, archived });
+    if (!a) return false;
+    const next = { ...a, archived };
+    if (passesActiveLimit(state.activities, next, state.today)) return false;
+    appStore.upsertActivity(next);
+    return true;
   },
   deleteActivity(id: string) {
     const logs = Object.fromEntries(Object.entries(state.logs).filter(([, l]) => l.activityId !== id));
@@ -165,7 +174,7 @@ export const appStore = {
     void persister.setSetting('proInterest', '1');
   },
   activeCount(): number {
-    return state.activities.filter((a) => !a.archived && !(a.end && a.end < state.today)).length;
+    return state.activities.filter((a) => isActive(a, state.today)).length;
   },
   snapshot(): Snapshot {
     return {

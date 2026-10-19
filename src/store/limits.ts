@@ -1,5 +1,26 @@
+import type { Activity, DateKey } from '../engine';
+
 /** Free plan (Plan §10, TR-68). Frequencies are never paid; only the number of active activities is limited. */
 export const FREE_ACTIVE_LIMIT = 5;
+
+/** What counts against the limit: an activity that is not archived and has not passed its end date. */
+export function isActive(a: Activity, today: DateKey): boolean {
+  return !a.archived && !(a.end && a.end < today);
+}
+
+/**
+ * Whether saving `next` would make one activity more active than the limit allows: a new activity, an
+ * archived one brought back, or an ended one given a later end date. Every path that makes an activity
+ * active asks this, not only "Create" (Unarchive in Settings used to skip it and left 6 active).
+ * One that was already active never trips it, so someone already over the limit (a backup merged in)
+ * can still edit and archive.
+ */
+export function passesActiveLimit(activities: readonly Activity[], next: Activity, today: DateKey): boolean {
+  if (!isActive(next, today)) return false;
+  const before = activities.find((a) => a.id === next.id);
+  if (before && isActive(before, today)) return false;
+  return activities.filter((a) => a.id !== next.id && isActive(a, today)).length >= FREE_ACTIVE_LIMIT;
+}
 
 /**
  * Whether the app may talk about TraceRoutine Pro on this platform (TR-69). The first iOS release sells

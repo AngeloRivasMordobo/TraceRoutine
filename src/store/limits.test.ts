@@ -7,7 +7,8 @@
 import { describe, expect, it } from 'vitest';
 import { LANGS, t } from '../i18n';
 import { PURCHASE_WORDS, stringKeys } from '../test/copy';
-import { FREE_ACTIVE_LIMIT, freeLimitPrompt, frequencyHelp, PRO_ONLY_KEYS, showsPro } from './limits';
+import { newDraft } from '../ui/editor/editorModel';
+import { FREE_ACTIVE_LIMIT, freeLimitPrompt, frequencyHelp, isActive, passesActiveLimit, PRO_ONLY_KEYS, showsPro } from './limits';
 
 /** Everyday words that the purchase pattern also catches, and what they mean where the app shows them. */
 const NOT_AN_UPSELL: Record<string, string> = {
@@ -23,6 +24,41 @@ const proOnly = (key: string) => (PRO_ONLY_KEYS as readonly string[]).includes(k
 describe('free limit', () => {
   it('stays at 5 active activities on every platform', () => {
     expect(FREE_ACTIVE_LIMIT).toBe(5);
+  });
+});
+
+describe('what counts against the limit', () => {
+  const today = '2026-10-19';
+  const mk = (id: string, extra: Partial<ReturnType<typeof newDraft>> = {}) => ({ ...newDraft(id, '2026-10-01'), name: id, ...extra });
+  const five = ['a1', 'a2', 'a3', 'a4', 'a5'].map((id) => mk(id));
+
+  it('counts activities that are neither archived nor past their end date', () => {
+    expect(isActive(mk('x'), today)).toBe(true);
+    expect(isActive(mk('x', { end: today }), today)).toBe(true); // its last day is still today
+    expect(isActive(mk('x', { archived: true }), today)).toBe(false);
+    expect(isActive(mk('x', { end: '2026-10-18' }), today)).toBe(false);
+  });
+  it('stops a sixth new activity, not a fifth', () => {
+    expect(passesActiveLimit(five, mk('new'), today)).toBe(true);
+    expect(passesActiveLimit(five.slice(1), mk('new'), today)).toBe(false);
+  });
+  it('stops an archived activity coming back while 5 are active (Unarchive used to skip the check)', () => {
+    const archived = mk('old', { archived: true });
+    expect(passesActiveLimit([...five, archived], { ...archived, archived: false }, today)).toBe(true);
+    expect(passesActiveLimit([...five.slice(1), archived], { ...archived, archived: false }, today)).toBe(false);
+  });
+  it('stops an ended activity coming back with a later end date while 5 are active', () => {
+    const ended = mk('old', { end: '2026-10-10' });
+    expect(passesActiveLimit([...five, ended], { ...ended, end: null }, today)).toBe(true);
+  });
+  it('never stops editing or archiving one that is already active, even over the limit', () => {
+    const six = [...five, mk('a6')];
+    expect(passesActiveLimit(six, { ...six[0], name: 'Renamed' }, today)).toBe(false);
+    expect(passesActiveLimit(six, { ...six[0], archived: true }, today)).toBe(false);
+  });
+  it('lets an archived or ended activity be saved as it is', () => {
+    const archived = mk('old', { archived: true });
+    expect(passesActiveLimit([...five, archived], { ...archived, name: 'Renamed' }, today)).toBe(false);
   });
 });
 

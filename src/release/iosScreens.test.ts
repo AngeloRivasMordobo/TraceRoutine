@@ -253,3 +253,40 @@ describe('Settings in the light theme', () => {
     expect(html).toContain(`data-color="${light.kicker}">SETTINGS</span>`);
   });
 });
+
+describe('Unarchive in Settings with 5 active activities', () => {
+  const ids = ['b1', 'b2', 'b3', 'b4', 'b5'];
+  beforeAll(() => {
+    const today = appStore.getState().today;
+    for (const id of ids) appStore.upsertActivity({ ...newDraft(id, today), name: id });
+    appStore.upsertActivity({ ...newDraft('old', today), name: 'Old', archived: true });
+  });
+  afterAll(() => { for (const id of [...ids, 'old']) appStore.deleteActivity(id); });
+  const stillArchived = () => appStore.getState().activities.find((a) => a.id === 'old')?.archived;
+
+  for (const lang of LANGS) {
+    it(`on iOS shows the neutral limit message and keeps it archived (${lang})`, () => {
+      render(Settings, 'ios', lang);
+      press(t('settings.unarchive', undefined, lang));
+      expect(alerts).toHaveLength(1);
+      expect(alerts[0].title).toBe(t('settings.activeLimitTitle', { limit: 5 }, lang));
+      expect(alerts[0].buttons).toEqual([t('editor.cancel', undefined, lang), t('settings.activeLimitSee', undefined, lang)]);
+      expect(stillArchived()).toBe(true);
+    });
+  }
+  it('on Android shows the free-plan alert and keeps it archived', () => {
+    render(Settings, 'android', 'en');
+    press(t('settings.unarchive', undefined, 'en'));
+    expect(alerts[0].title).toBe(t('settings.freeLimitTitle', { limit: 5 }, 'en'));
+    expect(stillArchived()).toBe(true);
+  });
+  it('brings it back with no alert once another one is archived', () => {
+    appStore.setArchived('b5', true);
+    render(Settings, 'ios', 'en');
+    press(t('settings.unarchive', undefined, 'en')); // the last archived row is "Old" (rows keep the activities' order)
+    expect(alerts).toEqual([]);
+    expect(stillArchived()).toBe(false);
+    appStore.setArchived('old', true);
+    appStore.setArchived('b5', false);
+  });
+});

@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,10 +12,11 @@ import { pickTextFile, shareText } from '@/src/data/files';
 import { formatShortDate, freqLabel, LANGS, t, type Lang } from '@/src/i18n';
 import { askReminderPermission, getPermissionState, openSystemSettings, type PermissionState } from '@/src/reminders/service';
 import { appStore, useAppStore } from '@/src/store/appStore';
-import { FREE_ACTIVE_LIMIT, showsPro } from '@/src/store/limits';
+import { FREE_ACTIVE_LIMIT, isActive, showsPro } from '@/src/store/limits';
 import { Button, Kicker, Title } from '@/src/ui/components';
 import { Input, Sheet } from '@/src/ui/controls';
 import { ActivityIcon, UIIcon, type UIIconKey } from '@/src/ui/icons';
+import { alertActiveLimit } from '@/src/ui/limitAlert';
 import { Logo } from '@/src/ui/Logo';
 import { TimeField } from '@/src/ui/TimeField';
 import { useTheme, type ThemeMode } from '@/src/ui/theme';
@@ -34,7 +36,8 @@ export default function SettingsScreen() {
   const logs = useAppStore((s) => s.logs);
   const today = useAppStore((s) => s.today);
   const archived = activities.filter((a) => a.archived);
-  const activeCount = activities.filter((a) => !a.archived && !(a.end && a.end < today)).length;
+  const activeCount = activities.filter((a) => isActive(a, today)).length;
+  const router = useRouter();
   const [perm, setPerm] = useState<PermissionState>('undetermined');
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
   const [typed, setTyped] = useState('');
@@ -71,6 +74,12 @@ export default function SettingsScreen() {
       { text: t('settings.importMerge'), onPress: () => void apply('merge') },
       { text: t('settings.importReplace'), style: 'destructive', onPress: () => void apply('replace') },
     ]);
+  };
+  // Bringing one back counts against the active limit like creating one; the store refuses it at the limit.
+  const unarchive = (id: string) => {
+    if (appStore.setArchived(id, false)) return;
+    track('free_limit_reached', { active: activeCount });
+    alertActiveLimit((to) => router.push(to));
   };
   const deleteAll = async () => { await appStore.clearAll(); setDeleteStep(0); setTyped(''); flash(t('settings.deleted')); };
 
@@ -139,7 +148,7 @@ export default function SettingsScreen() {
               <View key={a.id} style={[styles.archivedRow, { borderBottomColor: th.surface2 }]}>
                 <ActivityIcon name={a.icon} color={activityColor(a.color)} size={16} />
                 <Text style={[styles.archivedName, { color: th.text }]} numberOfLines={1}>{a.name}</Text>
-                <Pressable onPress={() => appStore.setArchived(a.id, false)} accessibilityRole="button" hitSlop={8}>
+                <Pressable onPress={() => unarchive(a.id)} accessibilityRole="button" hitSlop={8}>
                   <Text style={{ color: th.accent, fontFamily: font.family, fontSize: font.size.sm }}>{t('settings.unarchive')}</Text>
                 </Pressable>
               </View>

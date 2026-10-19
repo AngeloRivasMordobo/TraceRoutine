@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { track } from '@/src/analytics';
 import { offerReminders } from '@/src/reminders/service';
-import { FREE_ACTIVE_LIMIT, freeLimitPrompt, frequencyHelp } from '@/src/store/limits';
+import { frequencyHelp, isActive, passesActiveLimit, type LimitRoute } from '@/src/store/limits';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,6 +29,7 @@ import { Chip, ErrorText, FieldLabel, Help, Input, Sheet, Stepper } from '@/src/
 import { addCycleStep, anchorExamples, applyDuration, cycleLegend, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
 import { ActivityIcon, ICON_KEYS, UIIcon } from '@/src/ui/icons';
 import { shiftMonth } from '@/src/ui/month/gridModel';
+import { alertActiveLimit } from '@/src/ui/limitAlert';
 import { TimeField } from '@/src/ui/TimeField';
 import { useTheme } from '@/src/ui/theme';
 import { ACTIVITY_COLOR_KEYS, accentRamp, activityColors, font, mix, neutral, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
@@ -41,7 +42,7 @@ export default function EditorScreen() {
   const existing = useActivity(id);
   const today = useAppStore((s) => s.today);
   const lang = useAppStore((s) => s.lang);
-  const activeCount = useAppStore((s) => s.activities.filter((a) => !a.archived && !(a.end && a.end < s.today)).length);
+  const activities = useAppStore((s) => s.activities);
   const router = useRouter();
   const th = useTheme();
 
@@ -55,7 +56,6 @@ export default function EditorScreen() {
     if (endParam === '21d') d = { ...d, end: applyDuration(today, '21d') };
     return d;
   });
-  const limitReached = !existing && activeCount >= FREE_ACTIVE_LIMIT;
   const [touched, setTouched] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [stepInput, setStepInput] = useState('');
@@ -96,22 +96,17 @@ export default function EditorScreen() {
   // The editor can be the only route in the stack: first-activity replaces into it,
   // and on web it can be opened directly by URL. back() would have nothing to pop.
   const dismiss = () => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); };
+  /** A button of the limit alert: close the editor and open where it leads. */
+  const leaveTo = (to: NonNullable<LimitRoute>) => { dismiss(); router.push(to); };
   const save = async () => {
     if (errors.length) { setShowErrors(true); return; }
-    if (limitReached) {
-      track('free_limit_reached', { active: activeCount });
+    const next = { ...draft, name: draft.name.trim(), unit: draft.unit?.trim() || null, minimal: draft.minimal?.trim() || null, reminder: draft.reminder || null };
+    if (passesActiveLimit(activities, next, today)) {
       // iOS v1 sells nothing: the alert states the limit and leads to the activities, with no Pro button (TR-69).
-      const prompt = freeLimitPrompt(Platform.OS);
-      Alert.alert(
-        t(prompt.title, { limit: FREE_ACTIVE_LIMIT }),
-        t(prompt.body),
-        prompt.buttons.map(({ label, goTo }) =>
-          goTo ? { text: t(label), onPress: () => { dismiss(); router.push(goTo); } } : { text: t(label), style: 'cancel' as const },
-        ),
-      );
-      return;
+      track('free_limit_reached', { active: activities.filter((a) => isActive(a, today)).length });
+      return alertActiveLimit(leaveTo);
     }
-    appStore.upsertActivity({ ...draft, name: draft.name.trim(), unit: draft.unit?.trim() || null, minimal: draft.minimal?.trim() || null, reminder: draft.reminder || null });
+    appStore.upsertActivity(next);
     if (!existing) track('create_activity', { type: draft.freq.type, anchor: draft.freq.anchor ?? 'calendar', first_activity: firstParam === '1' });
     // A reminder only fires once the system allows notifications: the first time, explain and ask here (TR-58).
     if (draft.reminder) await offerReminders();
@@ -131,7 +126,8 @@ export default function EditorScreen() {
       { text: t('editor.delete'), style: 'destructive', onPress: () => { appStore.deleteActivity(draft.id); dismiss(); } },
     ]);
   };
-  const archive = () => { appStore.setArchived(draft.id, !draft.archived); dismiss(); };
+  // Bringing an archived activity back is refused at the limit, like creating one (setArchived says so).
+  const archive = () => (appStore.setArchived(draft.id, !draft.archived) ? dismiss() : alertActiveLimit(leaveTo));
 
 
   const { first } = monthRange(pm.y, pm.m);
