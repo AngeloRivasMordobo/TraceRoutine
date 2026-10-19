@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import appJson from '../../app.json';
 import easJson from '../../eas.json';
 
@@ -41,6 +41,31 @@ describe('iOS app config', () => {
     expect(Object.keys(out.mods ?? {})).toEqual(['ios']);
     expect(Object.keys(out.mods?.ios ?? {})).toEqual(['xcodeproj']);
     expect((appJson.expo as Record<string, unknown>).locales).toBeUndefined();
+  });
+  it('hands both language files to Expo\'s iOS locales step when the mod runs, so the .lproj folders get written', async () => {
+    // The plugin and this test load the same CommonJS copy of expo/config-plugins, so the spy sees the
+    // plugin's call. Expo's step writes nothing when the config it receives has no `locales`.
+    type Mod = (config: object) => Promise<object>;
+    const { IOSConfig } = require('expo/config-plugins') as { IOSConfig: { Locales: { setLocalesAsync: (config: object, options: object) => Promise<unknown>; getLocales: (config: object) => unknown } } };
+    const project = { pbxproj: 'stand-in' };
+    const spy = vi.spyOn(IOSConfig.Locales, 'setLocalesAsync').mockResolvedValue(project);
+    try {
+      const withIosLocales = require('../../plugins/withIosLocales.js') as (config: object, props: object) => { mods: { ios: { xcodeproj: Mod } } };
+      const props = pluginProps('./plugins/withIosLocales') ?? {};
+      const out = withIosLocales({ name: 'TraceRoutine', slug: 'traceroutine' }, props);
+      const result = (await out.mods.ios.xcodeproj({
+        ...out,
+        modResults: project,
+        modRequest: { projectRoot: root, platformProjectRoot: join(root, 'ios'), platform: 'ios', modName: 'xcodeproj', introspect: false },
+      })) as { modResults: unknown };
+      expect(spy).toHaveBeenCalledTimes(1);
+      const [config, options] = spy.mock.calls[0];
+      expect(IOSConfig.Locales.getLocales(config)).toEqual({ en: './locales/en.json', es: './locales/es.json' });
+      expect(options).toEqual({ projectRoot: root, project });
+      expect(result.modResults).toBe(project);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
