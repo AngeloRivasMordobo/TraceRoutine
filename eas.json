@@ -14,7 +14,10 @@
     },
     "production": {
       "channel": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "ios": {
+        "image": "sdk-57"
+      }
     }
   },
   "submit": {
@@ -22,6 +25,11 @@
       "android": {
         "serviceAccountKeyPath": "/Users/angelorivas/.config/eas-keys/mordobo-play-eas-submit.json",
         "track": "internal"
+      },
+      "ios": {
+        "bundleIdentifier": "app.traceroutine",
+        "appleTeamId": "CTC5PRH3D3",
+        "appName": "TraceRoutine"
       }
     }
   }

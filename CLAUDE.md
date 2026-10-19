@@ -3,7 +3,7 @@
 Routine tracker with real frequencies (React Native + Expo SDK 57, TypeScript strict, expo-router). Local-first: SQLite, no account. ES/EN. Design system: Nocturne (dark default, accent #9184d9, outlined buttons, 0.7× density).
 
 ## Commands
-- `npm test` (Vitest, 84 tests: engine, i18n, editor/grid models, stats, reminders, backup, analytics) · `npm run typecheck` · `npm run lint`
+- `npm test` (Vitest, 112 tests: engine, i18n, editor/grid models, stats, reminders, backup, analytics, store language, contact links, store config) · `npm run typecheck` · `npm run lint`
 - All three must be green before any commit. Definition of done also requires a review on a real iOS and Android device.
 - Dev build: `npx eas build --profile development --platform android|ios` (needed after native changes: notifications, Sentry).
 
@@ -13,6 +13,8 @@ Routine tracker with real frequencies (React Native + Expo SDK 57, TypeScript st
 - `src/ui/` — tokens (never hard-code colors), `Cell` (9 grid states), controls, editor model (`ui/editor/editorModel.ts`), month grid model (`ui/month/gridModel.ts`).
 - `src/store/appStore.ts` — external store with write-through persistence (`src/data/persistence.ts`: SQLite on device, memory on web). `FREE_ACTIVE_LIMIT` in `store/limits.ts`.
 - `src/reminders/` — pure planner + native service (expo-notifications). `src/stats/` — pure stats. `src/analytics/` — events with whitelisted properties and opt-out; PostHog/Sentry configured through `.env` (see `.env.example`, never commit `.env`).
+- `src/about/links.ts` — privacy policy URL (per language) and the support inbox (`support@mordobo.com`).
+- iOS store config — `app.json` (`ios`: iPhone only, `usesNonExemptEncryption: false`, `CFBundleLocalizations`), `plugins/withIosLocales.js` + `locales/{en,es}.json` (the .lproj folders the App Store reads its languages from) and `eas.json` (`sdk-57` image, `submit.production.ios`). Guarded by `src/release/storeConfig.test.ts`. Do not move the locales to the top-level `locales` key: it also writes Android resources, and the Play build must not change. Runtime iOS-only behaviour goes behind `Platform.OS === 'ios'`.
 - `app/` — routes: `(tabs)/{index,month,stats,settings}`, `editor` (modal, accepts `id` or prefill params), `onboarding`, `first-activity`.
 
 ## Product rules that must not be broken
