@@ -26,7 +26,7 @@ import { formatMonthYear, formatRelativeDay, localizedCycleSteps, t, weekdayLett
 import { appStore, newId, useActivity, useAppStore } from '@/src/store/appStore';
 import { Button, Seg } from '@/src/ui/components';
 import { Chip, ErrorText, FieldLabel, Help, Input, Sheet, Stepper } from '@/src/ui/controls';
-import { addCycleStep, anchorExamples, applyDuration, cycleLegend, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
+import { addCycleStep, anchorExamples, applyDuration, cycleLegend, DRAFT_ERROR_TEXT, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
 import { ActivityIcon, ICON_KEYS, UIIcon } from '@/src/ui/icons';
 import { shiftMonth } from '@/src/ui/month/gridModel';
 import { alertActiveLimit } from '@/src/ui/limitAlert';
@@ -72,7 +72,11 @@ export default function EditorScreen() {
   const [pm, setPm] = useState(() => ({ y: parseKey(today).y, m: parseKey(today).m }));
 
   const errors = validateDraft(draft);
-  const err = (e: DraftError) => (showErrors && errors.includes(e) ? t(`editor.err${e.charAt(0).toUpperCase()}${e.slice(1)}`) : null);
+  /** The message of the first of these errors the draft has, once Create has been tapped. */
+  const err = (...of: DraftError[]) => {
+    const e = showErrors ? of.find((x) => errors.includes(x)) : undefined;
+    return e ? t(DRAFT_ERROR_TEXT[e]) : null;
+  };
   const patch = (p: Partial<Activity>) => { setDraft((d) => ({ ...d, ...p })); setTouched(true); };
   const patchFreq = (fn: (f: FrequencyRule) => FrequencyRule) => { setDraft((d) => ({ ...d, freq: fn(d.freq) })); setTouched(true); };
   const f = draft.freq;
@@ -283,6 +287,7 @@ export default function EditorScreen() {
               <Text style={[styles.freqText, { color: th.icon }]}>{t('editor.days')}{n === 2 ? ` (${t('freq.everyOtherDay').toLowerCase()})` : n === 1 ? ` (${t('freq.daily').toLowerCase()})` : ''}</Text>
             </View>
           )}
+          {f.type === 'everyN' && <ErrorText>{err('everyN')}</ErrorText>}
           {f.type === 'weekdays' && (
             <>
               <View style={[styles.rowGap, { marginTop: space[4] }]}>
@@ -305,6 +310,7 @@ export default function EditorScreen() {
                 <Stepper value={times} min={1} max={7} onChange={(v) => patchFreq((r) => ({ ...r, times: v }))} accessibilityLabel={t('editor.timesPerWeek')} />
                 <Text style={[styles.freqText, { color: th.icon }]}>{t('editor.timesPerWeek')}</Text>
               </View>
+              <ErrorText>{err('perWeek')}</ErrorText>
               <Help>{t('editor.youChoose')}</Help>
             </>
           )}
@@ -397,7 +403,7 @@ export default function EditorScreen() {
             <View style={{ flex: 1 }}>
               <FieldLabel>{t('editor.ends')}</FieldLabel>
               <Input value={draft.end ?? ''} onChangeText={(v) => patch({ end: v || null })} placeholder="—" autoCapitalize="none" {...dateKeyboard()} />
-              <ErrorText>{err('end')}</ErrorText>
+              <ErrorText>{err('endDate', 'end')}</ErrorText>
             </View>
           </View>
           <View style={[styles.rowGap, { marginTop: space[3] }]}>

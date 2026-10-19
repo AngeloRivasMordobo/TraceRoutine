@@ -5,7 +5,25 @@
 import { addDays, cycleLetters, daysInMonth, isBefore, isDue, isValidKey, monthRange, nextDue, simulatePerfect, type Activity, type CycleStep, type DateKey, type FrequencyRule } from '../../engine';
 import { defaultRule, validateRule } from '../../engine/presets';
 
-export type DraftError = 'name' | 'days' | 'cycle' | 'end' | 'start' | 'unit' | 'time' | 'everyN' | 'perWeek';
+/** `endDate`: the end is not a real date (2026-02-30); `end`: it is one, but before the start. */
+export type DraftError = 'name' | 'days' | 'cycle' | 'end' | 'endDate' | 'start' | 'unit' | 'time' | 'everyN' | 'perWeek';
+
+/**
+ * The message for each error. An impossible end date used to say "can't be before the start", and an
+ * invalid start showed the raw key "editor.errStart", which no dictionary has.
+ */
+export const DRAFT_ERROR_TEXT: Record<DraftError, string> = {
+  name: 'editor.errName',
+  days: 'editor.errDays',
+  cycle: 'editor.errCycle',
+  end: 'editor.errEnd',
+  endDate: 'editor.errDate',
+  start: 'editor.errDate',
+  unit: 'editor.errUnit',
+  time: 'editor.errTime',
+  everyN: 'editor.errEveryN',
+  perWeek: 'editor.errPerWeek',
+};
 
 export function newDraft(id: string, today: DateKey): Activity {
   return {
@@ -51,7 +69,8 @@ export function validateDraft(a: Activity): DraftError[] {
   if (!a.name.trim()) errors.push('name');
   if (a.record === 'amount' && !(a.unit ?? '').trim()) errors.push('unit');
   if (!isValidKey(a.start)) errors.push('start');
-  if (a.end && (!isValidKey(a.end) || (isValidKey(a.start) && isBefore(a.end, a.start)))) errors.push('end');
+  if (a.end && !isValidKey(a.end)) errors.push('endDate');
+  else if (a.end && isValidKey(a.start) && isBefore(a.end, a.start)) errors.push('end');
   if (a.reminder && !isValidTime(a.reminder)) errors.push('time');
   for (const e of validateRule(a.freq)) {
     if (e === 'weekdays.empty') errors.push('days');

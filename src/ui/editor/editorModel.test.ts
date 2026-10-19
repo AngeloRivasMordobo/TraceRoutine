@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { defaultRule } from '../../engine/presets';
-import { addCycleStep, anchorExamples, applyDuration, cycleLegend, dateToTime, isValidTime, newDraft, previewSummary, removeCycleStep, timeToDate, toggleWeekday, validateDraft } from './editorModel';
+import { LANGS, t } from '../../i18n';
+import { addCycleStep, anchorExamples, applyDuration, cycleLegend, dateToTime, DRAFT_ERROR_TEXT, isValidTime, newDraft, previewSummary, removeCycleStep, timeToDate, toggleWeekday, validateDraft } from './editorModel';
 
 const TODAY = '2026-08-27';
 
@@ -49,6 +50,30 @@ describe('editor model', () => {
     expect(applyDuration('2026-08-27', '21d')).toBe('2026-09-16');
     expect(applyDuration('2026-08-27', '4w')).toBe('2026-09-23');
     expect(applyDuration('2026-08-27', '3m')).toBe('2026-11-24');
+  });
+  it('tells an impossible end date apart from one before the start', () => {
+    const d = { ...newDraft('x', TODAY), name: 'A' };
+    expect(validateDraft({ ...d, end: '2026-02-30' })).toEqual(['endDate']);
+    expect(validateDraft({ ...d, end: '2026-8-1' })).toEqual(['endDate']);
+    expect(validateDraft({ ...d, end: '2026-08-01' })).toEqual(['end']);
+    expect(validateDraft({ ...d, end: TODAY })).toEqual([]);
+    expect(t(DRAFT_ERROR_TEXT.endDate, undefined, 'en')).toBe(t('editor.errDate', undefined, 'en'));
+    expect(t(DRAFT_ERROR_TEXT.end, undefined, 'en')).toBe("The end date can't be before the start.");
+  });
+  it('has a message for every error, in both languages (an invalid start showed the key "editor.errStart")', () => {
+    for (const key of Object.values(DRAFT_ERROR_TEXT)) {
+      for (const lang of LANGS) expect(t(key, undefined, lang), `${key} (${lang})`).not.toBe(key);
+    }
+    expect(t(DRAFT_ERROR_TEXT.start, undefined, 'es')).toBe('Fecha inválida (AAAA\u2011MM\u2011DD).');
+  });
+  it('writes the date format with non-breaking hyphens, so "YYYY-" and "MM-DD" never land on two lines', () => {
+    for (const lang of LANGS) {
+      for (const key of ['editor.dateHelp', 'editor.errDate']) {
+        const text = t(key, undefined, lang);
+        expect(text).toMatch(/\u2011MM\u2011DD/);
+        expect(text).not.toContain('-');
+      }
+    }
   });
   it('preview summary counts due days in the month with perfect completion', () => {
     const d = { ...newDraft('x', TODAY), name: 'A' }; // every other day from today
