@@ -119,7 +119,7 @@ npx eas-cli@latest submit --platform ios --profile production --latest
 - **Después del primer envío**: añadir `"ascAppId": "<Apple ID>"` en `eas.json` → `submit.production.ios`, para que los siguientes envíos no sean interactivos. Va en un commit aparte que también actualice `storeConfig.test.ts`.
 - **Enviar a revisión**: lo pulsa Angelo en App Store Connect cuando la ficha esté completa (§2, §5–§8).
 
-> CI: el job `preview-build` de `.github/workflows/ci.yml` ejecuta `eas build --profile preview --platform all --non-interactive`. En iOS ese perfil es distribución interna (ad hoc), que necesita dispositivos registrados y credenciales ad hoc, así que fallará en modo no interactivo. Decisión pendiente: limitarlo a `--platform android` o preparar credenciales ad hoc.
+> CI: el job `preview-build` de `.github/workflows/ci.yml` ya no corre en cada push a `main`: se lanza a mano (*Actions › CI › Run workflow*) eligiendo la plataforma, `android` por defecto. En iOS el perfil `preview` es distribución interna (ad hoc), que necesita dispositivos registrados y credenciales ad hoc: no elegir `ios` hasta tenerlas. Requiere el secreto `EXPO_TOKEN` en el repo (hoy no está, y por eso fallaba el job).
 
 ---
 
