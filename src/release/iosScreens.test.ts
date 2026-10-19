@@ -5,7 +5,7 @@
  * (src/test/nativeStubs.ts). Dropping a platform guard in a screen fails here even when the pure rules
  * in src/store/limits.ts still pass. Layout, keyboard and touch still need the real-iPhone QA (RELEASE-IOS.md §4).
  */
-import { createElement, type ComponentType } from 'react';
+import { createElement, type ComponentType, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { LANGS, t, type Lang } from '../i18n';
@@ -13,6 +13,8 @@ import { appStore, bootstrapStore } from '../store/appStore';
 import { PURCHASE_WORDS, visibleText } from '../test/copy';
 import { alerts, platform, press, resetStubs, tapAlert } from '../test/nativeStubs';
 import { newDraft } from '../ui/editor/editorModel';
+import { ThemeProvider, type ThemeMode } from '../ui/theme';
+import { light } from '../ui/tokens';
 
 (globalThis as Record<string, unknown>).__DEV__ = false;
 
@@ -64,12 +66,15 @@ let Settings: ComponentType;
 let Editor: ComponentType;
 let Today: ComponentType;
 
-/** What the screen shows on `os`, in `lang`. */
-function render(screen: ComponentType, os: 'ios' | 'android', lang: Lang): { html: string; text: string } {
+/** ThemeProvider with its children optional, so they can go as createElement's third argument. */
+const Themed = ThemeProvider as ComponentType<{ mode: ThemeMode; children?: ReactNode }>;
+
+/** What the screen shows on `os`, in `lang` (and in the theme `mode`, dark by default as in the app). */
+function render(screen: ComponentType, os: 'ios' | 'android', lang: Lang, mode: ThemeMode = 'dark'): { html: string; text: string } {
   resetStubs();
   platform.OS = os;
   appStore.setLang(lang);
-  const html = renderToStaticMarkup(createElement(screen));
+  const html = renderToStaticMarkup(createElement(Themed, { mode }, createElement(screen)));
   return { html, text: visibleText(html) };
 }
 
@@ -219,7 +224,32 @@ describe("Today's value sheet with the decimal pad up", () => {
       const { html, text } = render(Today, os, 'en');
       expect(text).toContain('Run'); // the row is in the list
       // SafeAreaView, then the list.
-      expect(html).toMatch(/^<div><div data-keyboard-should-persist-taps="handled">/);
+      expect(html).toMatch(/^<div[^>]*><div data-keyboard-should-persist-taps="handled"/);
     });
   }
+});
+
+describe('Settings in the light theme', () => {
+  /** The background of the option labelled `label` and the colour of its label. */
+  const pill = (html: string, label: string) => {
+    const m = html.match(new RegExp(`<button[^>]*data-bg="([^"]+)"[^>]*><span[^>]*data-color="([^"]+)"[^>]*>${label}</span></button>`));
+    if (!m) throw new Error(`No selected option "${label}"`);
+    return { bg: m[1], color: m[2] };
+  };
+  for (const lang of LANGS) {
+    it(`shows the selected language and theme on a light tint with a readable label (${lang})`, () => {
+      const { html } = render(Settings, 'ios', lang, 'light');
+      for (const label of [lang.toUpperCase(), t('settings.dark', undefined, lang)]) {
+        // The store's theme is still dark here; the screen is drawn in the light theme around it.
+        const { bg, color } = pill(html, label);
+        expect(bg).toBe(light.accentTint);
+        expect(color).toBe(light.onAccentTint);
+        expect(color).not.toBe(bg);
+      }
+    });
+  }
+  it('draws the kicker in the light theme kicker colour', () => {
+    const { html } = render(Settings, 'ios', 'en', 'light');
+    expect(html).toContain(`data-color="${light.kicker}">SETTINGS</span>`);
+  });
 });

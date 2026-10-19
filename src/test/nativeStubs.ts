@@ -19,6 +19,23 @@ type Props = {
   keyboardType?: string;
   autoCorrect?: boolean;
   placeholder?: string;
+  style?: unknown;
+};
+
+/** A prop as a data attribute, or nothing when the screen leaves it unset. */
+const attr = (v: unknown) => (v === undefined ? undefined : String(v));
+
+/** A React Native style (object, nested arrays, falsy entries, or Pressable's function) as one object, unpressed. */
+function flatStyle(style: unknown): Record<string, unknown> {
+  if (typeof style === 'function') return flatStyle(style({ pressed: false }));
+  if (Array.isArray(style)) return Object.assign({}, ...style.map(flatStyle));
+  return style && typeof style === 'object' ? (style as Record<string, unknown>) : {};
+}
+
+/** The colours a test may check (a label against its background), as data attributes. */
+const colours = (style: unknown) => {
+  const s = flatStyle(style);
+  return { 'data-bg': attr(s.backgroundColor), 'data-color': attr(s.color) };
 };
 
 /** The text inside a node, as a screen reader would read a button without a label. */
@@ -30,11 +47,8 @@ function textOf(node: ReactNode): string {
   return '';
 }
 
-/** A prop as a data attribute, or nothing when the screen leaves it unset. */
-const attr = (v: unknown) => (v === undefined ? undefined : String(v));
-
 const host = (tag: string) =>
-  function Host({ children, accessibilityLabel, value, keyboardShouldPersistTaps, keyboardDismissMode, keyboardType, autoCorrect, placeholder }: Props) {
+  function Host({ children, accessibilityLabel, value, keyboardShouldPersistTaps, keyboardDismissMode, keyboardType, autoCorrect, placeholder, style }: Props) {
     return createElement(
       tag,
       {
@@ -45,6 +59,7 @@ const host = (tag: string) =>
         'data-keyboard-type': attr(keyboardType),
         'data-auto-correct': attr(autoCorrect),
         'data-placeholder': attr(placeholder),
+        ...colours(style),
       },
       children,
     );
@@ -104,9 +119,9 @@ export const reactNativeStub = {
   Platform: platform,
   View: host('div'),
   Text: host('span'),
-  Pressable: function Pressable({ children, accessibilityLabel, onPress, disabled }: Props) {
+  Pressable: function Pressable({ children, accessibilityLabel, onPress, disabled, style }: Props) {
     pressables.push({ label: accessibilityLabel ?? textOf(children), onPress, disabled: !!disabled });
-    return createElement('button', { 'aria-label': accessibilityLabel }, children);
+    return createElement('button', { 'aria-label': accessibilityLabel, ...colours(style) }, children);
   },
   ScrollView: host('div'),
   FlatList,

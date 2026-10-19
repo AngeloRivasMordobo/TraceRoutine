@@ -73,7 +73,7 @@ export default function OnboardingScreen() {
         <View style={[styles.page, styles.cover, { width }]}>
           <Logo size={16} gap={5} />
           <Text style={[styles.brand, { color: th.text }]}>{t('app.name')}</Text>
-          <Text style={[styles.tagline, { color: accentRamp[300] }]}>{t('app.tagline')}</Text>
+          <Text style={[styles.tagline, { color: th.accentText }]}>{t('app.tagline')}</Text>
           <Text style={[styles.promise, { color: th.muted }]}>{t('app.promise')}</Text>
         </View>
 
@@ -98,7 +98,7 @@ export default function OnboardingScreen() {
             {dayRow(true, t('onboarding.normalDay'), t('onboarding.normalExample'))}
             {dayRow(false, t('onboarding.badDay'), t('onboarding.badExample'))}
           </View>
-          <Text style={[styles.note, { color: accentRamp[300] }]}>{t('onboarding.step2Note')}</Text>
+          <Text style={[styles.note, { color: th.accentText }]}>{t('onboarding.step2Note')}</Text>
         </View>
       </ScrollView>
 

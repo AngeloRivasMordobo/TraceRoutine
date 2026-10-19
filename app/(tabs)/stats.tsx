@@ -105,7 +105,7 @@ export default function StatsScreen() {
             <View style={styles.dayCards}>
               <View style={[styles.dayCard, { borderColor: th.line }]}>
                 <Text style={[styles.dayLabel, { color: th.subtle }]}>{t('stats.bestDay').toUpperCase()}</Text>
-                <Text style={[styles.dayValue, { color: accentRamp[300] }]}>
+                <Text style={[styles.dayValue, { color: th.accentText }]}>
                   {pattern.enough && pattern.best !== null ? days[pattern.best] : '–'}
                 </Text>
               </View>

@@ -79,6 +79,10 @@ export interface Theme {
   accentLine: string;
   /** Accent-coloured text on the ground: a deep ramp step, never the base accent (Nocturne readme). */
   accentText: string;
+  /** The screen kicker above each title: accent-400 on the dark ground, as the canvas draws it. */
+  kicker: string;
+  /** Text on an accent-toned tag, which sits on `accentTint`. */
+  accentTagText: string;
   pressed: string;
   /** Nocturne ships no danger ramp; these come from the design canvas. */
   danger: string;
@@ -108,6 +112,8 @@ export const dark: Theme = {
   onAccentTint: accentRamp[200],
   accentLine: accentRamp[600],
   accentText: accentRamp[300],
+  kicker: accentRamp[400],
+  accentTagText: accentRamp[100],
   pressed: accentRamp[400],
   danger: '#d98a8a',
   chrome: mix('#161826', '#000000', 0.12),
@@ -134,6 +140,10 @@ export const light: Theme = {
   onAccentTint: accentRamp[800],
   accentLine: accentRamp[600],
   accentText: accentRamp[700],
+  // The design only draws the dark theme. On the light ground the dark theme's light steps
+  // (accent-100…400) all but vanish, so text takes the deep steps instead.
+  kicker: accentRamp[700],
+  accentTagText: accentRamp[800],
   pressed: accentRamp[700],
   danger: '#b3555a',
   chrome: neutral[300],

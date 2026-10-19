@@ -165,7 +165,7 @@ export default function SettingsScreen() {
               <Text style={[styles.proName, { color: th.text }]}>{`${t('app.name')} Pro`}</Text>
             </View>
             <Text style={[styles.proBody, { color: th.subtle }]}>{t('settings.proBody')}</Text>
-            <Text style={[styles.proNote, { color: accentRamp[300] }]}>
+            <Text style={[styles.proNote, { color: th.accentText }]}>
               {t('settings.freeLimit', { limit: FREE_ACTIVE_LIMIT, left: Math.max(0, FREE_ACTIVE_LIMIT - activeCount) })}
             </Text>
             <Button
@@ -217,7 +217,9 @@ function PillSeg<T extends string>({ options, value, onChange }: { options: { va
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
             onPress={() => onChange(o.value)}
-            style={[styles.pillOpt, on && { backgroundColor: accentRamp[800] }]}>
+            // accentTint is accent-800 in the dark theme, as before; the light theme's own tint keeps the
+            // label (onAccentTint, accent-800 there) readable instead of painting it on its own colour.
+            style={[styles.pillOpt, on && { backgroundColor: th.accentTint }]}>
             <Text style={[styles.pillLabel, { color: on ? th.onAccentTint : th.subtle }]}>{o.label}</Text>
           </Pressable>
         );

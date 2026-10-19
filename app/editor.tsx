@@ -345,7 +345,7 @@ export default function EditorScreen() {
                       <Text
                         style={[
                           styles.miniText,
-                          { fontFamily: due || flex ? font.medium : font.family, color: due ? accentRamp[100] : flex ? accentRamp[300] : th.faint },
+                          { fontFamily: due || flex ? font.medium : font.family, color: due ? accentRamp[100] : flex ? th.accentText : th.faint },
                         ]}>
                         {previewLetters.get(date) || i + 1}
                       </Text>
