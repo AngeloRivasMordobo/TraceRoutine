@@ -50,6 +50,15 @@ export const PRO_ONLY_KEYS = [
   'freq.neverPaid',
 ] as const;
 
+/**
+ * iOS: at the limit, the editor says so as it opens for a new activity, instead of letting the whole form
+ * be filled in and refusing it on Create (simulator QA, 2026-10-19). Create still checks. Android keeps the
+ * alert on Create only, as live on Google Play.
+ */
+export function warnsAtLimitOnOpen(os: string): boolean {
+  return os === 'ios';
+}
+
 /** Where a button of the limit alert leads; `null` closes the alert and leaves the editor as it is. */
 export type LimitRoute = '/(tabs)/settings' | '/(tabs)/month' | null;
 

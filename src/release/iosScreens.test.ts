@@ -29,6 +29,7 @@ vi.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'en-US' 
 vi.mock('expo-router', () => ({
   useLocalSearchParams: () => route.params,
   useRouter: () => ({ canGoBack: () => true, back: () => {}, replace: () => {}, push: () => {} }),
+  useNavigation: () => ({ setOptions: () => {}, addListener: () => () => {} }),
   Link: ({ children }: { children?: unknown }) => children,
 }));
 vi.mock('../ui/icons', () => ({
@@ -288,5 +289,29 @@ describe('Unarchive in Settings with 5 active activities', () => {
     expect(stillArchived()).toBe(false);
     appStore.setArchived('old', true);
     appStore.setArchived('b5', false);
+  });
+});
+
+describe('Editor keyboard', () => {
+  /** The opening tag of the date field with this placeholder. */
+  const dateField = (html: string, placeholder: string) => html.match(new RegExp(`<input[^>]*data-placeholder="${placeholder}"[^>]*>`))?.[0] ?? '';
+
+  it('on iOS lowers the keyboard when the form is dragged', () => {
+    expect(render(Editor, 'ios', 'en').html).toContain('data-keyboard-dismiss-mode="interactive"');
+  });
+  it('on iOS types the start and end dates on the number keyboard, with no autocorrect', () => {
+    const { html } = render(Editor, 'ios', 'en');
+    for (const placeholder of ['2026-08-27', '—']) {
+      expect(dateField(html, placeholder)).toContain('data-keyboard-type="numbers-and-punctuation"');
+      expect(dateField(html, placeholder)).toContain('data-auto-correct="false"');
+    }
+  });
+  it('on Android keeps the keyboard behaviour that is live on Google Play', () => {
+    const { html } = render(Editor, 'android', 'en');
+    expect(html).not.toContain('data-keyboard-dismiss-mode');
+    for (const placeholder of ['2026-08-27', '—']) {
+      expect(dateField(html, placeholder)).not.toBe('');
+      expect(dateField(html, placeholder)).not.toContain('data-keyboard-type');
+    }
   });
 });

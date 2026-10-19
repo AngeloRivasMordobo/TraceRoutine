@@ -1,8 +1,8 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter, type NativeStackNavigationProp } from 'expo-router';
 import { track } from '@/src/analytics';
 import { offerReminders } from '@/src/reminders/service';
-import { frequencyHelp, isActive, passesActiveLimit, type LimitRoute } from '@/src/store/limits';
-import { useState } from 'react';
+import { frequencyHelp, isActive, passesActiveLimit, warnsAtLimitOnOpen, type LimitRoute } from '@/src/store/limits';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -35,6 +35,11 @@ import { useTheme } from '@/src/ui/theme';
 import { ACTIVITY_COLOR_KEYS, accentRamp, activityColors, font, mix, neutral, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
 
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+/**
+ * iOS: the dates are typed as YYYY-MM-DD, so the number keyboard with the hyphen, and no autocorrect or
+ * predictions ("I", "The" over a date). Android keeps the keyboard that is live on Google Play.
+ */
+const dateKeyboard = () => (Platform.OS === 'ios' ? ({ keyboardType: 'numbers-and-punctuation', autoCorrect: false, spellCheck: false } as const) : {});
 
 /** Activity editor (TR-31 … TR-38). Everything the preview shows comes from the engine. */
 export default function EditorScreen() {
@@ -44,6 +49,7 @@ export default function EditorScreen() {
   const lang = useAppStore((s) => s.lang);
   const activities = useAppStore((s) => s.activities);
   const router = useRouter();
+  const navigation = useNavigation<NativeStackNavigationProp<Record<string, object | undefined>>>();
   const th = useTheme();
 
   const [draft, setDraft] = useState<Activity>(() => {
@@ -95,9 +101,35 @@ export default function EditorScreen() {
 
   // The editor can be the only route in the stack: first-activity replaces into it,
   // and on web it can be opened directly by URL. back() would have nothing to pop.
-  const dismiss = () => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); };
+  const dismiss = useCallback(() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }, [router]);
   /** A button of the limit alert: close the editor and open where it leads. */
-  const leaveTo = (to: NonNullable<LimitRoute>) => { dismiss(); router.push(to); };
+  const leaveTo = useCallback((to: NonNullable<LimitRoute>) => { dismiss(); router.push(to); }, [dismiss, router]);
+  const askDiscard = useCallback(() => {
+    Alert.alert(t('editor.unsaved'), undefined, [
+      { text: t('editor.keepEditing'), style: 'cancel' },
+      { text: t('editor.discard'), style: 'destructive', onPress: dismiss },
+    ]);
+  }, [dismiss]);
+
+  // iOS presents the editor as a sheet that a swipe down closes, and that swipe threw a draft away without
+  // the question the back button asks. Once something has changed, the sheet holds on (it springs back)
+  // and the same question appears. Android has no such gesture; its editor is unchanged.
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    navigation.setOptions({ gestureEnabled: !touched });
+    if (!touched) return;
+    return navigation.addListener('gestureCancel', askDiscard);
+  }, [navigation, touched, askDiscard]);
+
+  // iOS: at the limit, say so as the editor opens for a new activity, not after the form is filled in.
+  // Cancel then closes the editor too, since nothing can be created; Create still checks.
+  const warnedAtOpen = useRef(false);
+  useEffect(() => {
+    if (warnedAtOpen.current) return;
+    warnedAtOpen.current = true;
+    if (!existing && warnsAtLimitOnOpen(Platform.OS) && passesActiveLimit(activities, draft, today)) alertActiveLimit(leaveTo, dismiss);
+  }, [existing, activities, draft, today, leaveTo, dismiss]);
+
   const save = async () => {
     if (errors.length) { setShowErrors(true); return; }
     const next = { ...draft, name: draft.name.trim(), unit: draft.unit?.trim() || null, minimal: draft.minimal?.trim() || null, reminder: draft.reminder || null };
@@ -113,13 +145,7 @@ export default function EditorScreen() {
     if (firstParam === '1') router.replace('/(tabs)/month');
     else dismiss();
   };
-  const cancel = () => {
-    if (!touched) return dismiss();
-    Alert.alert(t('editor.unsaved'), undefined, [
-      { text: t('editor.keepEditing'), style: 'cancel' },
-      { text: t('editor.discard'), style: 'destructive', onPress: dismiss },
-    ]);
-  };
+  const cancel = () => (touched ? askDiscard() : dismiss());
   const remove = () => {
     Alert.alert(t('editor.deleteConfirm', { name: draft.name }), undefined, [
       { text: t('editor.cancel'), style: 'cancel' },
@@ -170,7 +196,12 @@ export default function EditorScreen() {
           its content by the keyboard in screen coordinates and scrolls the focused field into view.
           On Android this is the same plain view as before. */}
       <View style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
+        {/* iOS: dragging the form also lowers the keyboard, which otherwise stayed over half the form until return. */}
+        <ScrollView
+          contentContainerStyle={styles.body}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : undefined}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
           <FieldLabel style={{ marginTop: 0 }}>{t('editor.name')}</FieldLabel>
           <Input value={draft.name} onChangeText={(v) => patch({ name: v })} placeholder={t('editor.namePlaceholder')} maxLength={30} autoFocus={!existing}  accessibilityLabel={t('editor.name')} />
           <ErrorText>{err('name')}</ErrorText>
@@ -360,12 +391,12 @@ export default function EditorScreen() {
           <View style={styles.twoCol}>
             <View style={{ flex: 1 }}>
               <FieldLabel>{t('editor.starts')}</FieldLabel>
-              <Input value={draft.start} onChangeText={(v) => patch({ start: v })} placeholder="2026-08-27" autoCapitalize="none"  />
+              <Input value={draft.start} onChangeText={(v) => patch({ start: v })} placeholder="2026-08-27" autoCapitalize="none" {...dateKeyboard()} />
               <ErrorText>{err('start')}</ErrorText>
             </View>
             <View style={{ flex: 1 }}>
               <FieldLabel>{t('editor.ends')}</FieldLabel>
-              <Input value={draft.end ?? ''} onChangeText={(v) => patch({ end: v || null })} placeholder="—" autoCapitalize="none"  />
+              <Input value={draft.end ?? ''} onChangeText={(v) => patch({ end: v || null })} placeholder="—" autoCapitalize="none" {...dateKeyboard()} />
               <ErrorText>{err('end')}</ErrorText>
             </View>
           </View>

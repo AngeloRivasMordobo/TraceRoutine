@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { LANGS, t } from '../i18n';
 import { PURCHASE_WORDS, stringKeys } from '../test/copy';
 import { newDraft } from '../ui/editor/editorModel';
-import { FREE_ACTIVE_LIMIT, freeLimitPrompt, frequencyHelp, isActive, passesActiveLimit, PRO_ONLY_KEYS, showsPro } from './limits';
+import { FREE_ACTIVE_LIMIT, freeLimitPrompt, frequencyHelp, isActive, passesActiveLimit, PRO_ONLY_KEYS, showsPro, warnsAtLimitOnOpen } from './limits';
 
 /** Everyday words that the purchase pattern also catches, and what they mean where the app shows them. */
 const NOT_AN_UPSELL: Record<string, string> = {
@@ -55,6 +55,10 @@ describe('what counts against the limit', () => {
     const six = [...five, mk('a6')];
     expect(passesActiveLimit(six, { ...six[0], name: 'Renamed' }, today)).toBe(false);
     expect(passesActiveLimit(six, { ...six[0], archived: true }, today)).toBe(false);
+  });
+  it('on iOS says so as the editor opens for a new activity; Android keeps the alert on Create only', () => {
+    expect(warnsAtLimitOnOpen('ios')).toBe(true);
+    expect(warnsAtLimitOnOpen('android')).toBe(false);
   });
   it('lets an archived or ended activity be saved as it is', () => {
     const archived = mk('old', { archived: true });
