@@ -14,7 +14,7 @@ import { PURCHASE_WORDS, visibleText } from '../test/copy';
 import { alerts, platform, press, resetStubs, tapAlert } from '../test/nativeStubs';
 import { newDraft } from '../ui/editor/editorModel';
 import { ThemeProvider, type ThemeMode } from '../ui/theme';
-import { light } from '../ui/tokens';
+import { dark, light, mix } from '../ui/tokens';
 
 (globalThis as Record<string, unknown>).__DEV__ = false;
 
@@ -313,5 +313,26 @@ describe('Editor keyboard', () => {
       expect(dateField(html, placeholder)).not.toBe('');
       expect(dateField(html, placeholder)).not.toContain('data-keyboard-type');
     }
+  });
+});
+
+describe('A skipped row on Today', () => {
+  // The "SKIP" swipe label sits behind each row. Fading the whole row let it show through.
+  beforeAll(() => {
+    const today = appStore.getState().today;
+    appStore.upsertActivity({ ...newDraft('walk', today), name: 'Walk', freq: { type: 'daily' } });
+    appStore.setLog('walk', today, 'skip');
+  });
+  afterAll(() => appStore.deleteActivity('walk'));
+
+  it('keeps an opaque, faded ground and fades only what is on it', () => {
+    const { html } = render(Today, 'ios', 'en');
+    const label = html.indexOf('>SKIP</span>');
+    expect(label).toBeGreaterThan(-1);
+    // After the label: the swipe's Animated.View, then the row itself.
+    const row = html.slice(label).match(/<div[^>]*><div([^>]*)>/)?.[1] ?? '';
+    expect(row).toContain(`data-bg="${mix(dark.surface2, dark.bg, 0.55)}"`);
+    expect(row).not.toContain('data-opacity');
+    expect(html).toMatch(/<button aria-label="Walk: done, tap to undo"[^>]*data-opacity="0.55"/);
   });
 });

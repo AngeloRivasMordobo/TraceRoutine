@@ -32,10 +32,10 @@ function flatStyle(style: unknown): Record<string, unknown> {
   return style && typeof style === 'object' ? (style as Record<string, unknown>) : {};
 }
 
-/** The colours a test may check (a label against its background), as data attributes. */
+/** The colours a test may check (a label against its background, a faded view), as data attributes. */
 const colours = (style: unknown) => {
   const s = flatStyle(style);
-  return { 'data-bg': attr(s.backgroundColor), 'data-color': attr(s.color) };
+  return { 'data-bg': attr(s.backgroundColor), 'data-color': attr(s.color), 'data-opacity': attr(s.opacity) };
 };
 
 /** The text inside a node, as a screen reader would read a button without a label. */
