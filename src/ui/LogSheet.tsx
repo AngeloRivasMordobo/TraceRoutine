@@ -25,6 +25,9 @@ export function LogSheet({ activity, date, mode, visible, onClose }: { activity:
   const [reason, setReason] = useState<string | null>(() => log?.reason ?? null);
 
   const hasValue = activity.record !== 'check';
+  // "Minutes" has no unit of its own (Activity.unit belongs to "An amount"), so the field said nothing
+  // about what the number was. It now reads "min", as an amount reads its unit.
+  const unit = activity.record === 'minutes' ? t('today.minutesUnit') : activity.unit;
   const confirm = () => {
     const n = value.trim() === '' ? null : Number(value.replace(',', '.'));
     appStore.setLog(activity.id, date, state, { value: Number.isFinite(n as number) ? n : null, reason: state === 'skip' ? reason : null });
@@ -45,12 +48,12 @@ export function LogSheet({ activity, date, mode, visible, onClose }: { activity:
       )}
       {mode !== 'skip' && hasValue && state !== 'skip' && (
         <View>
-          <Help>{`${t('today.valueHelp')}${activity.unit ? ` · ${activity.unit}` : ''}`}</Help>
+          <Help>{`${t('today.valueHelp')}${unit ? ` · ${unit}` : ''}`}</Help>
           <Input
             value={value}
             onChangeText={setValue}
             keyboardType="decimal-pad"
-            placeholder={activity.unit ?? ''}
+            placeholder={unit ?? ''}
             placeholderTextColor={th.faint}
             style={[{ marginTop: space[3] }]}
             accessibilityLabel={t('month.value')}

@@ -13,6 +13,7 @@ import { appStore, bootstrapStore } from '../store/appStore';
 import { PURCHASE_WORDS, visibleText } from '../test/copy';
 import { alerts, platform, press, resetStubs, tapAlert } from '../test/nativeStubs';
 import { newDraft } from '../ui/editor/editorModel';
+import { LogSheet } from '../ui/LogSheet';
 import { ThemeProvider, type ThemeMode } from '../ui/theme';
 import { dark, light, mix } from '../ui/tokens';
 
@@ -334,5 +335,29 @@ describe('A skipped row on Today', () => {
     expect(row).toContain(`data-bg="${mix(dark.surface2, dark.bg, 0.55)}"`);
     expect(row).not.toContain('data-opacity');
     expect(html).toMatch(/<button aria-label="Walk: done, tap to undo"[^>]*data-opacity="0.55"/);
+  });
+});
+
+describe('The "How much?" sheet', () => {
+  const sheet = (record: 'minutes' | 'amount', unit: string | null) => () =>
+    createElement(LogSheet, {
+      activity: { ...newDraft('x', appStore.getState().today), name: 'X', record, unit },
+      date: appStore.getState().today,
+      mode: 'value',
+      visible: true,
+      onClose: () => {},
+    });
+
+  for (const lang of LANGS) {
+    it(`says the number is in minutes for a "Minutes" activity (${lang})`, () => {
+      const { html, text } = render(sheet('minutes', null), 'ios', lang);
+      expect(text).toContain(`${t('today.valueHelp', undefined, lang)} · min`);
+      expect(html).toContain('data-placeholder="min"');
+    });
+  }
+  it('keeps the unit of an amount', () => {
+    const { html, text } = render(sheet('amount', 'km'), 'android', 'en');
+    expect(text).toContain(`${t('today.valueHelp', undefined, 'en')} · km`);
+    expect(html).toContain('data-placeholder="km"');
   });
 });

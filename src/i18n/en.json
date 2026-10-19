@@ -51,6 +51,7 @@
     "confirmSkip": "Skip",
     "valueTitle": "How much?",
     "valueHelp": "Optional. The check is what matters.",
+    "minutesUnit": "min",
     "noValue": "No value",
     "confirm": "Done",
     "hintClose": "Close hint",

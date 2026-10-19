@@ -51,6 +51,7 @@
     "confirmSkip": "Omitir",
     "valueTitle": "¿Cuánto?",
     "valueHelp": "Opcional. Lo importante es la marca.",
+    "minutesUnit": "min",
     "noValue": "Sin valor",
     "confirm": "Listo",
     "hintClose": "Cerrar pista",
