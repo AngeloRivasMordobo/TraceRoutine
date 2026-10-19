@@ -4,8 +4,9 @@ Guía para la primera versión en iOS (1.0.0). Decisiones del dueño del product
 
 - **Cuenta de Apple**: membresía de organización **MORDOBO TECHNOLOGIES LLC**, Team ID **CTC5PRH3D3**. Ese nombre legal exacto va en el copyright y en los textos legales.
 - **Compilación**: los builds de tienda se hacen con **EAS** (imagen iOS fijada en `sdk-57`). No hay build local con Xcode.
-- **Solo iPhone** (`ios.supportsTablet: false`). No hay que preparar nada para iPad.
-- **Sin compras en iOS v1**: ni tarjeta Pro, ni precios, ni "Avísame cuando esté listo". Al llegar al límite de 5 actividades activas se muestra un mensaje neutro, sin venta. Las compras llegan en una versión posterior (TR-96). Android no cambia.
+- **Solo iPhone** (`ios.supportsTablet: false`): no hay capturas ni diseño de iPad. Aun así, el App Store deja instalar las apps de iPhone en un iPad (modo de compatibilidad) y Apple suele revisar en iPad, así que la app se prueba también ahí (§4, paso 8).
+- **Sin compras en iOS v1**: ni tarjeta Pro, ni precios, ni "Avísame cuando esté listo", ni la línea "nunca será de pago" del editor. Al llegar al límite de 5 actividades activas se muestra un mensaje neutro, sin venta. Las compras llegan en una versión posterior (TR-96). Android no cambia.
+- **Sin analítica en iOS v1**: PostHog y Sentry no arrancan en iOS aunque el build lleve claves, y Ajustes no muestra el interruptor "Compartir estadísticas de uso anónimas" (§5). Android no cambia.
 - **Correo público de soporte**: `support@mordobo.com` (Angelo tiene que crearlo, ver §1).
 
 No hay guía de publicación de Android en este repo; esta guía sigue el orden real del proceso en App Store Connect.
@@ -19,10 +20,15 @@ No hay guía de publicación de Android en este repo; esta guía sigue el orden 
 | Solo iPhone, bundle `app.traceroutine`, `usesNonExemptEncryption: false` (no aparece "Missing Compliance" en TestFlight), `CFBundleLocalizations` en/es | `app.json` | `src/release/storeConfig.test.ts` |
 | Carpetas `en.lproj` / `es.lproj` para que el App Store muestre Español e Inglés, solo en iOS | `plugins/withIosLocales.js`, `locales/*.json` | `storeConfig.test.ts` |
 | Perfil `production` con imagen `sdk-57`, `submit.production.ios` (bundle, equipo CTC5PRH3D3, nombre TraceRoutine); el perfil de Google Play queda igual | `eas.json` | `storeConfig.test.ts` |
-| Enlace a la política de privacidad en Ajustes y "Enviar comentarios" a `support@mordobo.com` (ambas plataformas) | `src/about/links.ts` | `src/about/links.test.ts` |
-| La app arranca en el idioma del dispositivo (ambas plataformas) | `src/i18n/device.ts` | `device.test.ts`, `appStore.test.ts` |
-| **Solo iOS**: las hojas inferiores suben sobre el teclado (valor con teclado decimal, confirmación escribiendo BORRAR/DELETE); el editor desplaza el campo enfocado por encima del teclado | `src/ui/controls.tsx` (`Sheet`), `app/editor.tsx` | revisión en iPhone real (no se puede probar en Vitest ni en web) |
-| **Solo iOS**: sin tarjeta Pro en Ajustes; alerta neutra al llegar a 5 actividades activas | `src/store/limits.ts` (`showsPro`, `freeLimitPrompt`), `app/(tabs)/settings.tsx`, `app/editor.tsx` | `src/store/limits.test.ts` |
+| Enlace a la política de privacidad en Ajustes y "Enviar comentarios" a `support@mordobo.com` (ambas plataformas); la política dice en los dos idiomas que la copia de seguridad del sistema puede incluir los datos | `src/about/links.ts`, `docs/privacy.html` | `src/about/links.test.ts` (direcciones y cada mitad de la política), `src/release/iosScreens.test.ts` (la fila Privacidad está en Ajustes de iOS) |
+| La app arranca en el idioma del dispositivo (ambas plataformas). **Solo iOS**: si después de elegir idioma en la app se cambia en Ajustes de iOS → TraceRoutine → Idioma, gana el de iOS | `src/i18n/device.ts`, `src/i18n/index.ts` (`resolveLang`), `src/store/appStore.ts` | `device.test.ts`, `i18n.test.ts`, `appStore.test.ts` |
+| **Solo iOS**: las hojas inferiores suben sobre el teclado (valor con teclado decimal, confirmación escribiendo BORRAR/DELETE); el editor desplaza el campo enfocado por encima del teclado | `src/ui/controls.tsx` (`Sheet`), `app/editor.tsx` | revisión en iPhone real y en iPad (no se puede probar en Vitest ni en web) |
+| **Solo iOS**: sin tarjeta Pro en Ajustes, sin "nunca será de pago" en el editor; al llegar a 5 actividades activas, alerta neutra con "Ver mis actividades" (abre Mes) | `src/store/limits.ts` (`showsPro`, `freeLimitPrompt`, `frequencyHelp`, `PRO_ONLY_KEYS`), `app/(tabs)/settings.tsx`, `app/editor.tsx` | `src/store/limits.test.ts` (reglas y todos los textos de los diccionarios), `src/release/iosScreens.test.ts` (Ajustes y el editor renderizados como iOS y como Android, incluido pulsar "Crear" con 5 activas) |
+| **Solo iOS**: PostHog y Sentry no arrancan aunque el build lleve claves; Ajustes no muestra el interruptor de estadísticas | `src/analytics/policy.ts` (`analyticsAllowed`), `posthog.ts`, `sentry.ts`, `app/(tabs)/settings.tsx` | `src/analytics/platform.test.ts`, `iosScreens.test.ts` |
+| **Solo iOS**: la explicación previa al permiso de notificaciones tiene un único botón "Continuar" que lleva a la alerta del sistema. **Ambas plataformas**: guardar una actividad con recordatorio pide el permiso si nunca se pidió | `src/reminders/prePrompt.ts`, `src/reminders/service.ts` (`askReminderPermission`, `offerReminders`), Ajustes y editor | `src/reminders/prePrompt.test.ts`, `iosScreens.test.ts` |
+| "Borrar todos los datos" e "Importar respaldo → Reemplazar" conservan la exclusión de estadísticas y el resumen matinal (ambas plataformas) | `src/store/appStore.ts` | `appStore.test.ts` |
+
+`iosScreens.test.ts` renderiza las pantallas en Node con React Native sustituido por piezas simples (`src/test/nativeStubs.ts`): comprueba qué textos y botones hay, no el diseño, el teclado ni los gestos. Eso sigue siendo la revisión del §4.
 
 Antes de cada build: `npm test`, `npm run typecheck` y `npm run lint` en verde.
 
@@ -129,12 +135,13 @@ Revisión en iPhone real (la definición de hecho del repo la exige):
    - Ajustes → "Borrar todos los datos" → "Borrar de todas formas". Al escribir en el campo de "Escribe BORRAR para confirmar", el campo y el botón quedan sobre el teclado. Cerrar tocando fuera, **sin borrar**.
    - Editor: con el teclado abierto, al enfocar los campos de abajo (unidad, "Versión mínima", paso del ciclo, fechas de inicio y fin), cada uno queda visible sobre el teclado.
    - Probar en un iPhone pequeño (SE o mini) si es posible.
-2. **Sin Pro en iOS**: Ajustes no muestra la tarjeta "TraceRoutine Pro" ni "Avísame cuando esté listo". Con 5 actividades activas, crear una sexta muestra la alerta "Tienes 5 actividades activas" / "You have 5 active activities" con "Cancelar" y "Ver archivadas", y sin "Conocer Pro".
-3. **Idioma**: con el iPhone en español la app abre en español. En Ajustes de iOS → TraceRoutine → Idioma aparecen Español e Inglés.
-4. **Recordatorios**: el aviso previo y luego el permiso del sistema. La notificación llega solo los días que toca, con las acciones "Hecha" / "Mínima" (EN "Done" / "Minimum").
+2. **Sin Pro ni analítica en iOS**: Ajustes no muestra la tarjeta "TraceRoutine Pro", ni "Avísame cuando esté listo", ni "Compartir estadísticas de uso anónimas". El editor no muestra "Tu frecuencia real — nunca será de pago" bajo "Frecuencia". Con 5 actividades activas, crear una sexta muestra la alerta "Tienes 5 actividades activas" / "You have 5 active activities" con "Cancelar" y "Ver mis actividades" / "See my activities", sin "Conocer Pro". "Ver mis actividades" abre Mes; al tocar el nombre de una actividad se abre su editor con "Archivar".
+3. **Idioma**: con el iPhone en español la app abre en español. En Ajustes de iOS → TraceRoutine → Idioma aparecen Español e Inglés. Con el iPhone en inglés, elegir EN en la app (onboarding o Ajustes) y después, en Ajustes de iOS → TraceRoutine → Idioma, elegir Español: iOS reinicia la app y abre en español. Al volver a elegir EN en la app, se queda en inglés.
+4. **Recordatorios**: Ajustes → "Activar avisos" muestra el aviso previo con un solo botón, "Continuar" / "Continue", y luego el permiso del sistema. En una instalación nueva, crear una actividad con recordatorio (vienen activados por defecto) también muestra el aviso previo y el permiso, y no lo vuelve a pedir después de responder. La notificación llega solo los días que toca, con las acciones "Hecha" / "Mínima" (EN "Done" / "Minimum").
 5. **Datos**: Exportar CSV y Guardar respaldo (JSON) abren la hoja de compartir. Importar respaldo abre Archivos. Privacidad abre la política. "Enviar comentarios" abre Mail con `support@mordobo.com`; si Mail no está instalado, aparece la dirección en una alerta.
 6. **Temas** oscuro, claro y automático.
-7. **Android**: nada de esto cambia el build de Google Play. Si se sube un build nuevo de Android, hacer una prueba rápida de la tarjeta Pro, la alerta del límite (con "Conocer Pro") y las hojas.
+7. **Android**: las reglas de iOS no cambian el build de Google Play. Dos arreglos sí llegan a Android con el próximo build: guardar una actividad con recordatorio pide el permiso de notificaciones si nunca se pidió (Android 13+), y "Borrar todos los datos" o "Reemplazar" conservan la exclusión de estadísticas. Si se sube un build nuevo de Android, hacer una prueba rápida de la tarjeta Pro, el interruptor de estadísticas, la alerta del límite (con "Ver archivadas" y "Conocer Pro"), el aviso previo ("Ahora no" / "Activar avisos") y las hojas.
+8. **iPad (modo de compatibilidad)**: instalar el build de TestFlight en un iPad. Apple instala las apps de iPhone en iPad y suele revisar ahí. Comprobar con el teclado abierto: el editor (campos de abajo), la hoja "¿Cuánto?" y la de "Escribe BORRAR para confirmar"; y que las alertas (límite, recordatorios) se leen completas.
 
 ---
 
@@ -171,7 +178,9 @@ Antes de enviar **ese** build hay que actualizar App Privacy y la política de p
 - **Diagnóstico → Datos de fallos** (y "Otros datos de diagnóstico" si se envían): funcionalidad de la app y analítica; no vinculados; sin rastreo.
 - **Identificadores**: PostHog genera un ID anónimo por instalación. Hay que decidir si se declara como "ID del dispositivo".
 
-Comprobación rápida antes de cada build: `npx eas-cli@latest env:list --environment production`. Si aparecen nombres de PostHog o Sentry, la respuesta de este apartado ya no vale.
+Desde el 19 de octubre la app también lo garantiza en el código: en iOS, `analyticsAllowed` (`src/analytics/policy.ts`) impide que PostHog y Sentry arranquen aunque el build lleve claves, y Ajustes no muestra el interruptor de estadísticas (`src/analytics/platform.test.ts` lo comprueba). Hacía falta porque las variables de EAS son por entorno, no por plataforma, y el mismo entorno `production` compila la app de Google Play: una clave añadida para Android acabaría en el siguiente binario de iOS.
+
+Comprobación rápida antes de cada build (segunda barrera): `npx eas-cli@latest env:list --environment production`. Si aparecen nombres de PostHog o Sentry, en iOS siguen sin usarse, pero conviene saber por qué están. Activar la analítica en iOS es una decisión de versión: primero App Privacy y la política, luego `analyticsAllowed`.
 
 ---
 
@@ -209,9 +218,9 @@ How to review:
 1. On first launch the onboarding can be skipped ("Skip"). Then pick a suggestion such as "Train every other day" to create a first activity, or tap "Something else". The "+" tab creates more activities.
 2. Today: tap the circle to mark an activity done, long-press it to log the minimum version, or swipe the row left to skip it with an optional reason. Tapping the activity name opens a menu with the same actions ("I did the minimum", "Skip", "Edit"), also available to VoiceOver.
 3. Month shows the month grid; tap a past cell to change it. Stats shows consistency over scheduled days only.
-4. Settings: language (ES/EN), theme, reminders (local notifications only, requested after an explanation), "Export CSV" and "Save backup (JSON)" through the share sheet, "Import backup" from Files, "Privacy" (privacy policy), "Send feedback" (email) and "Delete all data" (asks to type DELETE, or BORRAR in Spanish).
-
-The "Share anonymous usage stats" switch is an opt-out kept for future versions; no analytics service is configured in this build.
+4. Settings: language (ES/EN), theme, reminders (local notifications only), "Export CSV" and "Save backup (JSON)" through the share sheet, "Import backup" from Files, "Privacy" (privacy policy), "Send feedback" (email) and "Delete all data" (asks to type DELETE, or BORRAR in Spanish).
+5. Reminders: the notification permission is requested after a short explanation, either from Settings ("Turn on reminders") or the first time an activity with a reminder is saved (new activities have one at 08:00 by default). Notifications arrive only on the days an activity is due.
+6. With 5 active activities, creating another shows a message; "See my activities" opens Month, and an activity's editor has "Archive".
 
 Support: support@mordobo.com
 ```
@@ -255,3 +264,5 @@ Como la app es solo para iPhone, **no hay que subir capturas de iPad**.
 - [ ] Decidir qué hacer con el build iOS de vista previa en CI.
 - [ ] Revisión en iPhone real (§4) y capturas (§8).
 - [ ] Pulsar "Enviar a revisión".
+- [ ] Confirmar la licencia del repositorio: `LICENSE` pasó del MIT de la plantilla de Expo a "todos los derechos reservados" de MORDOBO TECHNOLOGIES LLC. El repositorio es público porque sirve la política en GitHub Pages; decidir si se deja público, se hace privado (y la política se publica en otro sitio) o se elige otra licencia.
+- [ ] Confirmar que la base de datos sigue en la copia de seguridad de iCloud/Google (la política ya lo dice). La otra opción es excluirla, pero entonces restaurar un iPhone no recupera el historial.
