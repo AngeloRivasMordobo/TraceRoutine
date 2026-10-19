@@ -14,6 +14,7 @@ Routine tracker with real frequencies (React Native + Expo SDK 57, TypeScript st
 - `src/store/appStore.ts` — external store with write-through persistence (`src/data/persistence.ts`: SQLite on device, memory on web). `FREE_ACTIVE_LIMIT`, `showsPro(os)` and `freeLimitPrompt(os)` in `store/limits.ts`.
 - `src/reminders/` — pure planner + native service (expo-notifications). `src/stats/` — pure stats. `src/analytics/` — events with whitelisted properties and opt-out; PostHog/Sentry configured through `.env` (see `.env.example`, never commit `.env`).
 - `src/about/links.ts` — privacy policy URL (per language) and the support inbox (`support@mordobo.com`).
+- `docs/RELEASE-IOS.md` — App Store release runbook (Spanish): one-time account setup, app record, first EAS build/submit, TestFlight QA, App Privacy, age rating, review notes, screenshots.
 - iOS store config — `app.json` (`ios`: iPhone only, `usesNonExemptEncryption: false`, `CFBundleLocalizations`), `plugins/withIosLocales.js` + `locales/{en,es}.json` (the .lproj folders the App Store reads its languages from) and `eas.json` (`sdk-57` image, `submit.production.ios`). Guarded by `src/release/storeConfig.test.ts`. Do not move the locales to the top-level `locales` key: it also writes Android resources, and the Play build must not change. Runtime iOS-only behaviour goes behind `Platform.OS === 'ios'`.
 - `app/` — routes: `(tabs)/{index,month,stats,settings}`, `editor` (modal, accepts `id` or prefill params), `onboarding`, `first-activity`.
 
