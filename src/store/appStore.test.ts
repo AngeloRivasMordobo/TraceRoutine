@@ -7,6 +7,9 @@ import { appStore, bootstrapStore } from './appStore';
 // __DEV__ is a React Native global; tests run in node.
 (globalThis as Record<string, unknown>).__DEV__ = false;
 
+/** Let the store's write-through (fire-and-forget) finish. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 const device = vi.hoisted(() => ({ tags: ['en-US'] as string[], saved: {} as Record<string, string> }));
 
 vi.mock('../i18n/device', () => ({ deviceLocaleTags: () => device.tags }));
@@ -53,12 +56,69 @@ describe('starting language', () => {
   });
 });
 
+describe('language on iOS, where Settings → TraceRoutine → Language exists', () => {
+  beforeEach(() => { device.saved = {}; });
+
+  it('follows a language changed in iOS Settings after the in-app pick', async () => {
+    device.tags = ['en-US'];
+    await bootstrapStore(false, 'ios');
+    appStore.setLang('en'); // the onboarding toggle
+    await settle();
+    expect(device.saved).toMatchObject({ lang: 'en', deviceLang: 'en' });
+    device.tags = ['es-ES']; // iOS Settings → TraceRoutine → Language → Español relaunches the app
+    await bootstrapStore(false, 'ios');
+    expect(appStore.getState().lang).toBe('es');
+    expect(getLang()).toBe('es');
+    expect(device.saved).toMatchObject({ lang: 'es', deviceLang: 'es' });
+  });
+  it('keeps the in-app pick while the iOS language stays the same', async () => {
+    device.tags = ['es-MX'];
+    await bootstrapStore(false, 'ios');
+    appStore.setLang('en');
+    await settle();
+    await bootstrapStore(false, 'ios');
+    expect(appStore.getState().lang).toBe('en');
+  });
+  it('starts noticing iOS changes for a pick saved before the device language was recorded', async () => {
+    device.saved = { lang: 'en' };
+    device.tags = ['es-ES'];
+    await bootstrapStore(false, 'ios');
+    expect(appStore.getState().lang).toBe('en');
+    expect(device.saved.deviceLang).toBe('es');
+    device.tags = ['en-GB'];
+    await bootstrapStore(false, 'ios');
+    expect(appStore.getState().lang).toBe('en');
+    device.tags = ['es-ES'];
+    await bootstrapStore(false, 'ios');
+    expect(appStore.getState().lang).toBe('es');
+  });
+  it('still follows iOS Settings after Delete all data saved the language', async () => {
+    device.tags = ['en-US'];
+    await bootstrapStore(false, 'ios');
+    await appStore.clearAll();
+    device.tags = ['es-ES'];
+    await bootstrapStore(false, 'ios');
+    expect(appStore.getState().lang).toBe('es');
+  });
+  it('on Android keeps the in-app pick when the device language changes, as before', async () => {
+    device.tags = ['en-US'];
+    await bootstrapStore(false, 'android');
+    appStore.setLang('en');
+    await settle();
+    expect(device.saved.deviceLang).toBeUndefined();
+    device.tags = ['es-ES'];
+    await bootstrapStore(false, 'android');
+    expect(appStore.getState().lang).toBe('en');
+  });
+});
+
 describe('settings that outlive Delete all data and a replace import', () => {
   beforeEach(() => { device.saved = {}; device.tags = ['en-US']; });
 
   it('keeps the analytics opt-out after Delete all data', async () => {
     await bootstrapStore(false);
     appStore.setAnalyticsOptOut(true);
+    await settle();
     await appStore.clearAll();
     await bootstrapStore(false); // next launch
     expect(appStore.getState().analyticsOptOut).toBe(true);
@@ -68,6 +128,7 @@ describe('settings that outlive Delete all data and a replace import', () => {
     await bootstrapStore(false);
     appStore.setAnalyticsOptOut(true);
     appStore.setMorningSummary(false);
+    await settle();
     await appStore.importSnapshot({ activities: [], logs: [], settings: {} }, 'replace');
     await bootstrapStore(false);
     expect(appStore.getState().analyticsOptOut).toBe(true);

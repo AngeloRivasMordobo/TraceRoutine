@@ -34,6 +34,22 @@ describe('i18n dictionaries', () => {
     expect(resolveLang('fr', ['es-CO'])).toBe('es');
     expect(resolveLang('', ['en-US'])).toBe('en');
   });
+  it('on iOS, lets a language changed in iOS Settings after the in-app pick win', () => {
+    const ios = (pickedOn?: string) => ({ followSystem: true, pickedOn });
+    // Picked English in the app on an English phone, then Settings → TraceRoutine → Language → Español.
+    expect(resolveLang('en', ['es-ES'], ios('en'))).toBe('es');
+    // Picked English in the app on a Spanish phone, nothing changed in iOS since: the pick still wins.
+    expect(resolveLang('en', ['es-MX'], ios('es'))).toBe('en');
+    // A region change inside the same language is not a new language choice.
+    expect(resolveLang('en', ['es-MX'], ios('es'))).toBe(resolveLang('en', ['es-ES'], ios('es')));
+    // A pick saved before the device language was recorded keeps winning; nothing saved follows the device.
+    expect(resolveLang('en', ['es-ES'], ios(undefined))).toBe('en');
+    expect(resolveLang(undefined, ['es-ES'], ios('en'))).toBe('es');
+  });
+  it('elsewhere, keeps the in-app pick whatever the device does, as before', () => {
+    expect(resolveLang('en', ['es-ES'], { pickedOn: 'en' })).toBe('en');
+    expect(resolveLang('en', ['es-ES'], { followSystem: false, pickedOn: 'en' })).toBe('en');
+  });
 });
 
 describe('date formatting without Intl', () => {

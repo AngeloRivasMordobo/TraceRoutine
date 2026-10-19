@@ -4,7 +4,7 @@
  */
 import { useSyncExternalStore } from 'react';
 import { todayKey, type Activity, type DateKey, type Log, type LogLookup, type LogState } from '../engine';
-import { resolveLang, setLang as setI18nLang, type Lang } from '../i18n';
+import { isLang, langFromLocales, resolveLang, setLang as setI18nLang, type Lang } from '../i18n';
 import { deviceLocaleTags } from '../i18n/device';
 import type { ThemeMode } from '../ui/theme';
 import { createMemoryPersister, createPersister, type Persister, type Snapshot } from '../data/persistence';
@@ -44,6 +44,14 @@ let state: AppState = {
   logs: {},
 };
 let persister: Persister = createMemoryPersister();
+/** iOS: a language chosen in Settings → TraceRoutine → Language after an in-app pick wins (see `resolveLang`). */
+let followSystemLang = false;
+
+/** Save a language the app should start in; on iOS, with the device language it was saved against. */
+async function saveLang(lang: Lang): Promise<void> {
+  await persister.setSetting('lang', lang);
+  if (followSystemLang) await persister.setSetting('deviceLang', langFromLocales(deviceLocaleTags()));
+}
 
 const listeners = new Set<() => void>();
 function emit(next: Partial<AppState>) {
@@ -51,12 +59,19 @@ function emit(next: Partial<AppState>) {
   listeners.forEach((l) => l());
 }
 
-export async function bootstrapStore(seedSamples = __DEV__): Promise<void> {
+/** `os` is `Platform.OS`, passed in so the store stays free of React Native (and testable in Node). */
+export async function bootstrapStore(seedSamples = __DEV__, os = 'unknown'): Promise<void> {
   persister = await createPersister();
   const snap = await persister.load();
-  // First launch follows the device (es-* → Spanish); once the user picks a language, that wins.
-  const lang = resolveLang(snap.settings.lang, deviceLocaleTags());
+  followSystemLang = os === 'ios';
+  // First launch follows the device (es-* → Spanish); once the user picks a language, that wins,
+  // except on iOS when the language was changed in iOS Settings after the pick.
+  const tags = deviceLocaleTags();
+  const saved = snap.settings.lang;
+  const lang = resolveLang(saved, tags, { followSystem: followSystemLang, pickedOn: snap.settings.deviceLang });
   setI18nLang(lang);
+  // Keep the device language next to a saved pick, so the next change in iOS Settings is noticed.
+  if (followSystemLang && isLang(saved) && (lang !== saved || snap.settings.deviceLang !== langFromLocales(tags))) await saveLang(lang);
   let activities = snap.activities;
   let logs = snap.logs;
   if (seedSamples && !activities.length && !snap.settings.seeded) {
@@ -95,7 +110,7 @@ export const appStore = {
   setLang(lang: Lang) {
     setI18nLang(lang);
     emit({ lang });
-    void persister.setSetting('lang', lang);
+    void saveLang(lang);
   },
   setThemeMode(themeMode: ThemeMode) {
     emit({ themeMode });
@@ -165,8 +180,8 @@ export const appStore = {
       // The wipe takes the settings table with it; write back what this session still shows, so the next
       // launch matches it (the analytics opt-out and the morning summary used to come back as defaults).
       await persister.clearAll();
+      await saveLang(state.lang);
       const keep: Record<string, string> = {
-        lang: state.lang,
         themeMode: state.themeMode,
         onboarded: '1',
         hintDismissed: '1',
@@ -188,7 +203,7 @@ export const appStore = {
   async clearAll(): Promise<void> {
     const lang = state.lang;
     await persister.clearAll();
-    await persister.setSetting('lang', lang);
+    await saveLang(lang);
     await persister.setSetting('seeded', '1');
     // A privacy choice is not data to delete: someone who opted out stays opted out after the next launch.
     await persister.setSetting('analyticsOptOut', state.analyticsOptOut ? '1' : '0');

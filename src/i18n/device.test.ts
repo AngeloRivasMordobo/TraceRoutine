@@ -15,8 +15,12 @@ describe('device language', () => {
     expect(deviceLocaleTags()).toEqual(['fr-FR', 'es-MX', 'en-US']);
     expect(langFromLocales(deviceLocaleTags())).toBe('es');
   });
-  it('falls back to the JS engine locale when the native module is missing', () => {
-    vi.mocked(getLocales).mockImplementation(() => { throw new Error('Cannot find native module ExpoLocalization'); });
+  it('falls back to the JS engine locale when getLocales() throws', () => {
+    vi.mocked(getLocales).mockImplementation(() => { throw new Error('getLocales failed'); });
+    expect(deviceLocaleTags()).toEqual([Intl.DateTimeFormat().resolvedOptions().locale]);
+  });
+  it('falls back to the JS engine locale when getLocales() returns no languages', () => {
+    vi.mocked(getLocales).mockReturnValue(locales());
     expect(deviceLocaleTags()).toEqual([Intl.DateTimeFormat().resolvedOptions().locale]);
   });
 });

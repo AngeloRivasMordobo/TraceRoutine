@@ -47,9 +47,25 @@ export function langFromLocales(tags: readonly (string | null | undefined)[]): L
   return 'en';
 }
 
-/** The language to start in: the one the user picked, if any; otherwise the device's. */
-export function resolveLang(saved: string | undefined, deviceTags: readonly (string | null | undefined)[]): Lang {
-  return saved && (LANGS as string[]).includes(saved) ? (saved as Lang) : langFromLocales(deviceTags);
+export const isLang = (value: string | null | undefined): value is Lang => !!value && (LANGS as string[]).includes(value);
+
+/**
+ * The language to start in: the one the user picked in the app, if any; otherwise the device's.
+ *
+ * `followSystem` (iOS): iOS offers Settings → TraceRoutine → Language, which changes the device list
+ * the app reads. `pickedOn` is the device language at the moment of the in-app pick. When the
+ * device language is no longer that one, the user changed it in iOS after picking in the app, and
+ * that newer choice wins. While it stays the same, the in-app pick wins as everywhere else.
+ */
+export function resolveLang(
+  saved: string | undefined,
+  deviceTags: readonly (string | null | undefined)[],
+  { followSystem = false, pickedOn }: { followSystem?: boolean; pickedOn?: string } = {},
+): Lang {
+  const device = langFromLocales(deviceTags);
+  if (!isLang(saved)) return device;
+  if (followSystem && isLang(pickedOn) && pickedOn !== device) return device;
+  return saved;
 }
 
 type Params = Record<string, string | number>;
