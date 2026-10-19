@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { track } from '@/src/analytics';
 import { FREE_ACTIVE_LIMIT } from '@/src/store/limits';
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   activePreset,
@@ -160,8 +160,13 @@ export default function EditorScreen() {
         </Pressable>
         <Text style={[styles.title, { color: th.text }]}>{existing ? t('editor.editTitle') : t('editor.newTitle')}</Text>
       </View>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      {/* iOS presents the editor as a page sheet that starts below the status bar. KeyboardAvoidingView
+          measures itself against its parent, not the screen, so it fell short by that offset and the lower
+          fields (unit, minimum, cycle step, dates) could stay under the keyboard. The scroll view now insets
+          its content by the keyboard in screen coordinates and scrolls the focused field into view.
+          On Android this is the same plain view as before. */}
+      <View style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
           <FieldLabel style={{ marginTop: 0 }}>{t('editor.name')}</FieldLabel>
           <Input value={draft.name} onChangeText={(v) => patch({ name: v })} placeholder={t('editor.namePlaceholder')} maxLength={30} autoFocus={!existing}  accessibilityLabel={t('editor.name')} />
           <ErrorText>{err('name')}</ErrorText>
@@ -398,7 +403,7 @@ export default function EditorScreen() {
           )}
           <View style={{ height: space[12] }} />
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
