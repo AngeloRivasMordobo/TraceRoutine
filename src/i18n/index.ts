@@ -85,6 +85,15 @@ export function t(key: string, params?: Params, lang: Lang = current): string {
   return typeof value === 'string' ? interpolate(value, params) : key;
 }
 
+/**
+ * A text with a count `{n}`: `${key}One` when n is 1 and the dictionary has it ("1 time", "1 vez"), `key`
+ * otherwise ("2 times"). English and Spanish need no other plural forms.
+ */
+export function tCount(key: string, n: number, params: Params = {}, lang: Lang = current): string {
+  const one = `${key}One`;
+  return t(n === 1 && typeof lookup(dicts[lang], one) === 'string' ? one : key, { ...params, n }, lang);
+}
+
 function list(key: string, lang: Lang): string[] {
   const value = lookup(dicts[lang], key);
   return Array.isArray(value) ? (value as string[]) : [];

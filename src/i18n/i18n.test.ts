@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyPreset, defaultRule } from '../engine/presets';
-import { detectLang, formatDayMonth, formatMonthYear, formatRelativeDay, formatShortDate, freqLabel, interpolate, langFromLocales, localizedCycleSteps, missingKeys, resolveLang, t } from './index';
+import { detectLang, formatDayMonth, formatMonthYear, formatRelativeDay, formatShortDate, freqLabel, interpolate, langFromLocales, localizedCycleSteps, missingKeys, resolveLang, t, tCount } from './index';
 
 describe('i18n dictionaries', () => {
   it('has no missing keys in either language', () => {
@@ -49,6 +49,26 @@ describe('i18n dictionaries', () => {
   it('elsewhere, keeps the in-app pick whatever the device does, as before', () => {
     expect(resolveLang('en', ['es-ES'], { pickedOn: 'en' })).toBe('en');
     expect(resolveLang('en', ['es-ES'], { followSystem: false, pickedOn: 'en' })).toBe('en');
+  });
+});
+
+describe('counts', () => {
+  it('says "1 time" / "1 vez", not "1 times" / "1 veces", in Stats', () => {
+    expect(tCount('stats.times', 1, {}, 'en')).toBe('1 time');
+    expect(tCount('stats.times', 1, {}, 'es')).toBe('1 vez');
+    expect(tCount('stats.sessions', 1, {}, 'en')).toBe('1 session');
+    expect(tCount('stats.sessions', 1, {}, 'es')).toBe('1 sesión');
+    expect(tCount('stats.times', 2, {}, 'en')).toBe('2 times');
+    expect(tCount('stats.sessions', 0, {}, 'es')).toBe('0 sesiones');
+  });
+  it('words the editor preview in the singular for one day or one session', () => {
+    expect(tCount('editor.previewDue', 1, { month: 'October' }, 'en')).toBe('Due 1 day in October');
+    expect(tCount('editor.previewDue', 3, { month: 'octubre' }, 'es')).toBe('Toca 3 días en octubre');
+    expect(tCount('editor.previewFlex', 1, { month: 'October' }, 'en')).toBe('About once in October, you pick the day.');
+    expect(tCount('editor.previewFlex', 6, { month: 'octubre' }, 'es')).toBe('Unas 6 veces en octubre, tú eliges los días.');
+  });
+  it('falls back to the plural text where there is no singular one', () => {
+    expect(tCount('today.doneOf', 1, { done: 1, total: 1 }, 'en')).toBe('1 of 1 done');
   });
 });
 

@@ -22,7 +22,7 @@ import {
   type FrequencyType,
   type RecordType,
 } from '@/src/engine';
-import { formatMonthYear, formatRelativeDay, localizedCycleSteps, t, weekdayLetters } from '@/src/i18n';
+import { formatMonthYear, formatRelativeDay, localizedCycleSteps, t, tCount, weekdayLetters } from '@/src/i18n';
 import { appStore, newId, useActivity, useAppStore } from '@/src/store/appStore';
 import { Button, Seg } from '@/src/ui/components';
 import { Chip, ErrorText, FieldLabel, Help, Input, Sheet, Stepper } from '@/src/ui/controls';
@@ -174,8 +174,8 @@ export default function EditorScreen() {
         ? t('editor.previewNoteRelative')
         : '';
   const summaryText = summary.flexible
-    ? t('editor.previewFlex', { n: summary.count, month: monthName })
-    : `${t('editor.previewDue', { n: summary.count, month: monthName })}${
+    ? tCount('editor.previewFlex', summary.count, { month: monthName })
+    : `${tCount('editor.previewDue', summary.count, { month: monthName })}${
         summary.dueToday
           ? ` · ${t('editor.previewToday')}${summary.next ? `, ${t('editor.previewThen', { date: formatRelativeDay(summary.next, today) })}` : ''}`
           : summary.next ? ` · ${t('editor.previewNext', { date: formatRelativeDay(summary.next, today) })}` : ''

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Polyline } from 'react-native-svg';
 import { parseKey, type DateKey } from '@/src/engine';
-import { formatMonthYear, formatShortDate, monthNames, t, weekdayNames } from '@/src/i18n';
+import { formatMonthYear, formatShortDate, monthNames, t, tCount, weekdayNames } from '@/src/i18n';
 import { bestMonth, monthStats, weekdayPattern, weeklyTrend } from '@/src/stats/statsModel';
 import { useAppStore, useLogLookup } from '@/src/store/appStore';
 import { Card, Kicker, Ring, Tag, Title } from '@/src/ui/components';
@@ -90,7 +90,7 @@ export default function StatsScreen() {
                       <Text style={[styles.barName, { color: th.text }]} numberOfLines={1}>
                         {a.name}{a.archived ? ` · ${t('stats.archived')}` : ''}
                       </Text>
-                      <Text style={[styles.barDetail, { color: th.subtle }]}>{t(a.freq.type === 'perWeek' ? 'stats.sessions' : 'stats.times', { n: done })}</Text>
+                      <Text style={[styles.barDetail, { color: th.subtle }]}>{tCount(a.freq.type === 'perWeek' ? 'stats.sessions' : 'stats.times', done)}</Text>
                       <Text style={[styles.barPct, { color }]}>{c.pct === null ? '–' : `${c.pct}%`}</Text>
                     </View>
                     <View style={[styles.track, { backgroundColor: th.surface2 }]}>

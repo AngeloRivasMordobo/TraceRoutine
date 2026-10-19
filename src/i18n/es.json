@@ -126,10 +126,12 @@
     "addRest": "+ Descanso",
     "preview": "{month} — te toca los días marcados",
     "previewDue": "Toca {n} días en {month}",
+    "previewDueOne": "Toca 1 día en {month}",
     "previewToday": "Toca hoy",
     "previewThen": "luego {date}",
     "previewNext": "Próximo: {date}",
     "previewFlex": "Unas {n} veces en {month}, tú eliges los días.",
+    "previewFlexOne": "Más o menos una vez en {month}, tú eliges el día.",
     "starts": "Empieza",
     "ends": "Termina",
     "endsHelp": "Deja Termina vacío si es indefinida. Útil para tratamientos de X días.",
@@ -207,7 +209,9 @@
     "weekOf": "semana del {date}",
     "kicker": "Estadísticas",
     "times": "{n} veces",
-    "sessions": "{n} sesiones"
+    "timesOne": "1 vez",
+    "sessions": "{n} sesiones",
+    "sessionsOne": "1 sesión"
   },
   "settings": {
     "title": "Ajustes",

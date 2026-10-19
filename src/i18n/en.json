@@ -126,10 +126,12 @@
     "addRest": "+ Rest",
     "preview": "{month} — due on the marked days",
     "previewDue": "Due {n} days in {month}",
+    "previewDueOne": "Due 1 day in {month}",
     "previewToday": "Due today",
     "previewThen": "then {date}",
     "previewNext": "Next: {date}",
     "previewFlex": "About {n} times in {month}, you pick the days.",
+    "previewFlexOne": "About once in {month}, you pick the day.",
     "starts": "Starts",
     "ends": "Ends",
     "endsHelp": "Leave Ends empty if it's open-ended. Useful for X-day treatments.",
@@ -207,7 +209,9 @@
     "weekOf": "week of {date}",
     "kicker": "Statistics",
     "times": "{n} times",
-    "sessions": "{n} sessions"
+    "timesOne": "1 time",
+    "sessions": "{n} sessions",
+    "sessionsOne": "1 session"
   },
   "settings": {
     "title": "Settings",
