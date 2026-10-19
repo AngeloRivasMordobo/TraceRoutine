@@ -3,7 +3,7 @@
 Routine tracker with real frequencies (React Native + Expo SDK 57, TypeScript strict, expo-router). Local-first: SQLite, no account. ES/EN. Design system: Nocturne (dark default, accent #9184d9, outlined buttons, 0.7× density).
 
 ## Commands
-- `npm test` (Vitest, 112 tests: engine, i18n, editor/grid models, stats, reminders, backup, analytics, store language, contact links, store config) · `npm run typecheck` · `npm run lint`
+- `npm test` (Vitest, 119 tests: engine, i18n, editor/grid models, stats, reminders, backup, analytics, store language, contact links, store config, free limit / Pro per platform) · `npm run typecheck` · `npm run lint`
 - All three must be green before any commit. Definition of done also requires a review on a real iOS and Android device.
 - Dev build: `npx eas build --profile development --platform android|ios` (needed after native changes: notifications, Sentry).
 
@@ -11,7 +11,7 @@ Routine tracker with real frequencies (React Native + Expo SDK 57, TypeScript st
 - `src/engine/` — frequency engine, pure TypeScript, no React/SQLite/Intl. "Today" is always passed in explicitly. Every rule has a test in `engine.test.ts`; keep it that way.
 - `src/i18n/` — `es.json` / `en.json` (every visible string), `t()`, own date formatting, `freqLabel`. A test fails if a key is missing in one language. Glossary of the 7 states: `docs/glossary.md`.
 - `src/ui/` — tokens (never hard-code colors), `Cell` (9 grid states), controls, editor model (`ui/editor/editorModel.ts`), month grid model (`ui/month/gridModel.ts`).
-- `src/store/appStore.ts` — external store with write-through persistence (`src/data/persistence.ts`: SQLite on device, memory on web). `FREE_ACTIVE_LIMIT` in `store/limits.ts`.
+- `src/store/appStore.ts` — external store with write-through persistence (`src/data/persistence.ts`: SQLite on device, memory on web). `FREE_ACTIVE_LIMIT`, `showsPro(os)` and `freeLimitPrompt(os)` in `store/limits.ts`.
 - `src/reminders/` — pure planner + native service (expo-notifications). `src/stats/` — pure stats. `src/analytics/` — events with whitelisted properties and opt-out; PostHog/Sentry configured through `.env` (see `.env.example`, never commit `.env`).
 - `src/about/links.ts` — privacy policy URL (per language) and the support inbox (`support@mordobo.com`).
 - iOS store config — `app.json` (`ios`: iPhone only, `usesNonExemptEncryption: false`, `CFBundleLocalizations`), `plugins/withIosLocales.js` + `locales/{en,es}.json` (the .lproj folders the App Store reads its languages from) and `eas.json` (`sdk-57` image, `submit.production.ios`). Guarded by `src/release/storeConfig.test.ts`. Do not move the locales to the top-level `locales` key: it also writes Android resources, and the Play build must not change. Runtime iOS-only behaviour goes behind `Platform.OS === 'ios'`.
@@ -19,6 +19,7 @@ Routine tracker with real frequencies (React Native + Expo SDK 57, TypeScript st
 
 ## Product rules that must not be broken
 - Frequencies are never paywalled. Only the number of active activities is limited (5 on the free plan).
+- iOS v1 sells nothing (owner decision 2026-10-19): no Pro card, no "Let me know when it's ready", and the 5-activity limit is stated with no upsell (`showsPro`, `freeLimitPrompt`). Android keeps the Pro section that is live on Google Play.
 - Consistency is measured over scheduled days: the minimum counts as a hit, off days never hurt, today pending never counts. No streak drama anywhere in the UI.
 - Never send activity names or free text to analytics (`sanitize()` enforces it; the test in `src/analytics/analytics.test.ts` guards it).
 - No jargon on screen: say "follows the calendar" / "counts from the last time", never "anchored" / "relative".

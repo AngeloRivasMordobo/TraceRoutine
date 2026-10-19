@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { track } from '@/src/analytics';
-import { FREE_ACTIVE_LIMIT } from '@/src/store/limits';
+import { FREE_ACTIVE_LIMIT, freeLimitPrompt } from '@/src/store/limits';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -98,10 +98,12 @@ export default function EditorScreen() {
     if (errors.length) { setShowErrors(true); return; }
     if (limitReached) {
       track('free_limit_reached', { active: activeCount });
-      Alert.alert(t('settings.freeLimitTitle', { limit: FREE_ACTIVE_LIMIT }), t('settings.freeLimitBody'), [
+      // iOS v1 sells nothing: the alert states the limit and offers archiving, with no Pro button (TR-69).
+      const prompt = freeLimitPrompt(Platform.OS);
+      Alert.alert(t(prompt.title, { limit: FREE_ACTIVE_LIMIT }), t(prompt.body), [
         { text: t('editor.cancel'), style: 'cancel' },
         { text: t('settings.freeLimitArchive'), onPress: () => { dismiss(); router.push('/(tabs)/settings'); } },
-        { text: t('settings.freeLimitPro'), onPress: () => { dismiss(); router.push('/(tabs)/settings'); } },
+        ...(prompt.offersPro ? [{ text: t('settings.freeLimitPro'), onPress: () => { dismiss(); router.push('/(tabs)/settings'); } }] : []),
       ]);
       return;
     }

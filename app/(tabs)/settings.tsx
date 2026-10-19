@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { feedbackMailto, privacyPolicyUrl, SUPPORT_EMAIL } from '@/src/about/links';
@@ -10,7 +10,7 @@ import { pickTextFile, shareText } from '@/src/data/files';
 import { formatShortDate, freqLabel, LANGS, t, type Lang } from '@/src/i18n';
 import { getPermissionState, openSystemSettings, requestPermission, rescheduleReminders, type PermissionState } from '@/src/reminders/service';
 import { appStore, useAppStore } from '@/src/store/appStore';
-import { FREE_ACTIVE_LIMIT } from '@/src/store/limits';
+import { FREE_ACTIVE_LIMIT, showsPro } from '@/src/store/limits';
 import { Button, Kicker, Title } from '@/src/ui/components';
 import { Input, Sheet } from '@/src/ui/controls';
 import { ActivityIcon, UIIcon, type UIIconKey } from '@/src/ui/icons';
@@ -147,33 +147,36 @@ export default function SettingsScreen() {
           </>
         )}
 
-        {/* The Pro card: accent hairline over a fading tint, with the brand mark. */}
-        <View style={[styles.pro, { borderColor: accentRamp[800] }]}>
-          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
-            <Defs>
-              <LinearGradient id="proGround" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={accentRamp[900]} stopOpacity={0.55} />
-                <Stop offset="1" stopColor={accentRamp[900]} stopOpacity={0} />
-              </LinearGradient>
-            </Defs>
-            <Rect x="0" y="0" width="100%" height="100%" fill="url(#proGround)" />
-          </Svg>
-          <View style={styles.proHead}>
-            <Logo size={8} gap={2.5} variant="compact" />
-            <Text style={[styles.proName, { color: th.text }]}>{`${t('app.name')} Pro`}</Text>
+        {/* The Pro card: accent hairline over a fading tint, with the brand mark. Not on iOS v1, which sells
+            nothing yet (TR-69): no benefits, no counter of the free plan and no "Let me know when it's ready". */}
+        {showsPro(Platform.OS) && (
+          <View style={[styles.pro, { borderColor: accentRamp[800] }]}>
+            <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+              <Defs>
+                <LinearGradient id="proGround" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={accentRamp[900]} stopOpacity={0.55} />
+                  <Stop offset="1" stopColor={accentRamp[900]} stopOpacity={0} />
+                </LinearGradient>
+              </Defs>
+              <Rect x="0" y="0" width="100%" height="100%" fill="url(#proGround)" />
+            </Svg>
+            <View style={styles.proHead}>
+              <Logo size={8} gap={2.5} variant="compact" />
+              <Text style={[styles.proName, { color: th.text }]}>{`${t('app.name')} Pro`}</Text>
+            </View>
+            <Text style={[styles.proBody, { color: th.subtle }]}>{t('settings.proBody')}</Text>
+            <Text style={[styles.proNote, { color: accentRamp[300] }]}>
+              {t('settings.freeLimit', { limit: FREE_ACTIVE_LIMIT, left: Math.max(0, FREE_ACTIVE_LIMIT - activeCount) })}
+            </Text>
+            <Button
+              label={proInterest ? t('settings.proNotified') : t('settings.notifyMe')}
+              variant={proInterest ? 'ghost' : 'primary'}
+              disabled={proInterest}
+              onPress={() => { appStore.markProInterest(); track('pro_interest'); }}
+              style={{ marginTop: space[4] }}
+            />
           </View>
-          <Text style={[styles.proBody, { color: th.subtle }]}>{t('settings.proBody')}</Text>
-          <Text style={[styles.proNote, { color: accentRamp[300] }]}>
-            {t('settings.freeLimit', { limit: FREE_ACTIVE_LIMIT, left: Math.max(0, FREE_ACTIVE_LIMIT - activeCount) })}
-          </Text>
-          <Button
-            label={proInterest ? t('settings.proNotified') : t('settings.notifyMe')}
-            variant={proInterest ? 'ghost' : 'primary'}
-            disabled={proInterest}
-            onPress={() => { appStore.markProInterest(); track('pro_interest'); }}
-            style={{ marginTop: space[4] }}
-          />
-        </View>
+        )}
 
         <Text style={[styles.foot, { color: th.faint }]}>
           {`${t('app.name')} ${version} · ${t('settings.localData')}`}
