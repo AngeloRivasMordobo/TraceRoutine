@@ -27,8 +27,16 @@ export const platform = { OS: 'ios' as string, select: <T,>(o: Record<string, T>
 
 /** Every Pressable of the last renders, by its label (or its text), with its handler. */
 export const pressables: { label: string; onPress?: () => unknown; disabled: boolean }[] = [];
-/** Every `Alert.alert` call, with the texts of its buttons. */
-export const alerts: { title: string; body?: string; buttons: string[] }[] = [];
+type AlertButton = { text?: string; onPress?: () => unknown };
+/** Every `Alert.alert` call, with the texts of its buttons (and their handlers, for `tapAlert`). */
+export const alerts: { title: string; body?: string; buttons: string[]; actions: AlertButton[] }[] = [];
+
+/** Tap the button `text` of the last alert. */
+export function tapAlert(text: string): unknown {
+  const button = alerts.at(-1)?.actions.find((b) => b.text === text);
+  if (!button) throw new Error(`The last alert has no "${text}" button`);
+  return button.onPress?.();
+}
 
 /** Press the last rendered control labelled `label`, as a tap would. */
 export function press(label: string): unknown {
@@ -64,8 +72,8 @@ export const reactNativeStub = {
     hairlineWidth: 1,
   },
   Alert: {
-    alert: (title: string, body?: string, buttons: { text?: string }[] = []) => {
-      alerts.push({ title, body, buttons: buttons.map((b) => b.text ?? '') });
+    alert: (title: string, body?: string, buttons: AlertButton[] = []) => {
+      alerts.push({ title, body, buttons: buttons.map((b) => b.text ?? ''), actions: buttons });
     },
   },
   Linking: { openURL: async () => {}, openSettings: async () => {} },

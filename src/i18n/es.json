@@ -401,6 +401,7 @@
     "prePromptBody": "Te avisamos una vez por actividad y solo los días que toca. Sin insistir.",
     "prePromptOk": "Activar avisos",
     "prePromptLater": "Ahora no",
+    "prePromptContinue": "Continuar",
     "permissionGranted": "Avisos activados",
     "permissionDenied": "Avisos desactivados en el sistema",
     "permissionUndetermined": "Avisos sin configurar",

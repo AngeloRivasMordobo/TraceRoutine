@@ -401,6 +401,7 @@
     "prePromptBody": "We notify you once per activity and only on the days it's due. No nagging.",
     "prePromptOk": "Turn on reminders",
     "prePromptLater": "Not now",
+    "prePromptContinue": "Continue",
     "permissionGranted": "Reminders on",
     "permissionDenied": "Reminders turned off in the system",
     "permissionUndetermined": "Reminders not set up",

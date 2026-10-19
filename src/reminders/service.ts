@@ -5,12 +5,13 @@
  * here is inert there: permissions read as denied and scheduling is skipped.
  */
 import * as Notifications from 'expo-notifications';
-import { Linking, Platform } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import { track } from '../analytics';
 import { todayKey } from '../engine';
 import { t } from '../i18n';
 import { appStore } from '../store/appStore';
 import { fireDate, planReminders } from './planner';
+import { prePromptButtons } from './prePrompt';
 
 export type PermissionState = 'granted' | 'denied' | 'undetermined';
 const CATEGORY = 'activity';
@@ -26,6 +27,37 @@ export async function requestPermission(): Promise<PermissionState> {
   if (Platform.OS === 'web') return 'denied';
   const p = await Notifications.requestPermissionsAsync();
   return p.granted ? 'granted' : p.canAskAgain ? 'undetermined' : 'denied';
+}
+
+/**
+ * Explain reminders, then show the system permission alert (TR-58). On iOS the explanation has one
+ * button, which leads to the system alert (see `prePromptButtons`). Resolves with the state once answered.
+ */
+export function askReminderPermission(): Promise<PermissionState> {
+  return new Promise((resolve) => {
+    const answer = async (asks: boolean) => {
+      const state = asks ? await requestPermission() : await getPermissionState();
+      if (state === 'granted') await rescheduleReminders();
+      resolve(state);
+    };
+    Alert.alert(
+      t('reminders.prePromptTitle'),
+      t('reminders.prePromptBody'),
+      prePromptButtons(Platform.OS).map(({ label, asks }) => ({ text: t(label), style: asks ? 'default' : 'cancel', onPress: () => void answer(asks) })),
+    );
+  });
+}
+
+let declinedThisLaunch = false;
+/**
+ * Called when an activity with a reminder is saved. A reminder only fires once the system allows
+ * notifications, and until now only Settings → "Turn on reminders" asked, so a reminder set in the
+ * editor could stay silent. If the system has not been asked yet, explain and ask now, in context.
+ * "Not now" (Android) is respected until the next launch.
+ */
+export async function offerReminders(): Promise<void> {
+  if (declinedThisLaunch || (await getPermissionState()) !== 'undetermined') return;
+  if ((await askReminderPermission()) === 'undetermined') declinedThisLaunch = true;
 }
 
 export function openSystemSettings(): Promise<void> {

@@ -9,7 +9,7 @@ import { analyticsAllowed } from '@/src/analytics/policy';
 import { activitiesCsv, backupSummary, logsCsv, parseBackup, toBackup } from '@/src/data/backup';
 import { pickTextFile, shareText } from '@/src/data/files';
 import { formatShortDate, freqLabel, LANGS, t, type Lang } from '@/src/i18n';
-import { getPermissionState, openSystemSettings, requestPermission, rescheduleReminders, type PermissionState } from '@/src/reminders/service';
+import { askReminderPermission, getPermissionState, openSystemSettings, type PermissionState } from '@/src/reminders/service';
 import { appStore, useAppStore } from '@/src/store/appStore';
 import { FREE_ACTIVE_LIMIT, showsPro } from '@/src/store/limits';
 import { Button, Kicker, Title } from '@/src/ui/components';
@@ -44,12 +44,7 @@ export default function SettingsScreen() {
   useEffect(() => { void getPermissionState().then(setPerm); }, []);
   const flash = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
 
-  const enableReminders = () => {
-    Alert.alert(t('reminders.prePromptTitle'), t('reminders.prePromptBody'), [
-      { text: t('reminders.prePromptLater'), style: 'cancel' },
-      { text: t('reminders.prePromptOk'), onPress: async () => { setPerm(await requestPermission()); await rescheduleReminders(); } },
-    ]);
-  };
+  const enableReminders = () => { void askReminderPermission().then(setPerm); };
 
   const exportCsv = async () => {
     const list = Object.values(logs);

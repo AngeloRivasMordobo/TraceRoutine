@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { track } from '@/src/analytics';
+import { offerReminders } from '@/src/reminders/service';
 import { FREE_ACTIVE_LIMIT, freeLimitPrompt, frequencyHelp } from '@/src/store/limits';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -95,7 +96,7 @@ export default function EditorScreen() {
   // The editor can be the only route in the stack: first-activity replaces into it,
   // and on web it can be opened directly by URL. back() would have nothing to pop.
   const dismiss = () => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); };
-  const save = () => {
+  const save = async () => {
     if (errors.length) { setShowErrors(true); return; }
     if (limitReached) {
       track('free_limit_reached', { active: activeCount });
@@ -112,6 +113,8 @@ export default function EditorScreen() {
     }
     appStore.upsertActivity({ ...draft, name: draft.name.trim(), unit: draft.unit?.trim() || null, minimal: draft.minimal?.trim() || null, reminder: draft.reminder || null });
     if (!existing) track('create_activity', { type: draft.freq.type, anchor: draft.freq.anchor ?? 'calendar', first_activity: firstParam === '1' });
+    // A reminder only fires once the system allows notifications: the first time, explain and ask here (TR-58).
+    if (draft.reminder) await offerReminders();
     if (firstParam === '1') router.replace('/(tabs)/month');
     else dismiss();
   };
@@ -398,7 +401,7 @@ export default function EditorScreen() {
           <ErrorText>{err('time')}</ErrorText>
 
           <View style={{ height: space[10] }} />
-          <Button label={existing ? t('editor.save') : t('editor.create')} onPress={save} disabled={!draft.name.trim()} />
+          <Button label={existing ? t('editor.save') : t('editor.create')} onPress={() => void save()} disabled={!draft.name.trim()} />
           {!draft.name.trim() && <Help>{t('editor.saveDisabled')}</Help>}
           {existing && (
             <View style={{ gap: space[3], marginTop: space[4] }}>

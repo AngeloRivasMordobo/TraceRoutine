@@ -11,7 +11,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { LANGS, t, type Lang } from '../i18n';
 import { appStore, bootstrapStore } from '../store/appStore';
 import { PURCHASE_WORDS, visibleText } from '../test/copy';
-import { alerts, platform, press, resetStubs } from '../test/nativeStubs';
+import { alerts, platform, press, resetStubs, tapAlert } from '../test/nativeStubs';
 import { newDraft } from '../ui/editor/editorModel';
 
 (globalThis as Record<string, unknown>).__DEV__ = false;
@@ -37,11 +37,16 @@ vi.mock('../ui/icons', () => ({
 vi.mock('../ui/Logo', () => ({ Logo: () => null }));
 vi.mock('../ui/TimeField', () => ({ TimeField: () => null }));
 vi.mock('../data/files', () => ({ shareText: async () => {}, pickTextFile: async () => null }));
-vi.mock('../reminders/service', () => ({
-  getPermissionState: async () => 'undetermined',
-  requestPermission: async () => 'granted',
-  openSystemSettings: async () => {},
-  rescheduleReminders: async () => 0,
+// The real reminder service runs; only the native notifications module is replaced. The system has not
+// been asked yet, and saying yes to its alert grants the permission.
+const notifications = vi.hoisted(() => ({ granted: false, asked: 0 }));
+vi.mock('expo-notifications', () => ({
+  getPermissionsAsync: async () => ({ granted: notifications.granted, canAskAgain: true }),
+  requestPermissionsAsync: async () => { notifications.asked += 1; notifications.granted = true; return { granted: true, canAskAgain: true }; },
+  IosAuthorizationStatus: { PROVISIONAL: 3 },
+  SchedulableTriggerInputTypes: { DATE: 'date' },
+  cancelAllScheduledNotificationsAsync: async () => {},
+  scheduleNotificationAsync: async () => 'id',
 }));
 vi.mock('../data/persistence', async () => {
   const memory = () => ({
@@ -72,7 +77,14 @@ beforeAll(async () => {
   Settings = (await import('../../app/(tabs)/settings')).default;
   Editor = (await import('../../app/editor')).default;
 });
-afterEach(() => { platform.OS = 'ios'; route.params = {}; });
+afterEach(() => {
+  platform.OS = 'ios';
+  route.params = {};
+  notifications.granted = false;
+  notifications.asked = 0;
+});
+/** Let the screen's async handlers (permission checks, the store's write-through) run. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('Settings on iOS', () => {
   for (const lang of LANGS) {
@@ -147,5 +159,44 @@ describe('Creating a sixth activity', () => {
     const alert = createSixth('android', 'en');
     expect(alert.title).toBe(t('settings.freeLimitTitle', { limit: 5 }, 'en'));
     expect(alert.buttons).toEqual(['Cancel', t('settings.freeLimitArchive', undefined, 'en'), t('settings.freeLimitPro', undefined, 'en')]);
+  });
+});
+
+describe('Reminders permission', () => {
+  it('on iOS, Settings explains reminders with a single Continue that leads to the system alert', async () => {
+    render(Settings, 'ios', 'en');
+    press(t('reminders.enable', undefined, 'en'));
+    expect(alerts.at(-1)).toMatchObject({ title: t('reminders.prePromptTitle', undefined, 'en'), buttons: ['Continue'] });
+    tapAlert('Continue');
+    await settle();
+    expect(notifications.asked).toBe(1);
+  });
+  it('on Android, Settings keeps "Not now" and "Turn on reminders", as live on Google Play', () => {
+    render(Settings, 'android', 'es');
+    press(t('reminders.enable', undefined, 'es'));
+    expect(alerts.at(-1)?.buttons).toEqual(['Ahora no', 'Activar avisos']);
+  });
+  for (const os of ['ios', 'android'] as const) {
+    it(`asks when an activity with a reminder is saved and the system was never asked (${os})`, async () => {
+      route.params = { name: 'Read' };
+      render(Editor, os, 'en');
+      press(t('editor.create', undefined, 'en'));
+      await settle();
+      expect(appStore.getState().activities.some((a) => a.name === 'Read' && a.reminder)).toBe(true);
+      expect(alerts.at(-1)?.title).toBe(t('reminders.prePromptTitle', undefined, 'en'));
+      tapAlert(t(os === 'ios' ? 'reminders.prePromptContinue' : 'reminders.prePromptOk', undefined, 'en'));
+      await settle();
+      expect(notifications.asked).toBe(1);
+      for (const a of appStore.getState().activities) appStore.deleteActivity(a.id);
+    });
+  }
+  it('does not ask again once the system has answered', async () => {
+    notifications.granted = true;
+    route.params = { name: 'Walk' };
+    render(Editor, 'ios', 'en');
+    press(t('editor.create', undefined, 'en'));
+    await settle();
+    expect(alerts).toEqual([]);
+    for (const a of appStore.getState().activities) appStore.deleteActivity(a.id);
   });
 });
