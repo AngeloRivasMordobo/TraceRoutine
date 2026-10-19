@@ -2,7 +2,7 @@
  * Pure editor logic (TR-31 … TR-38): drafts, validation, anchor examples,
  * duration shortcuts and the preview summary. No React here so it is testable.
  */
-import { addDays, cycleLetters, daysInMonth, isBefore, isDue, isValidKey, monthRange, nextDue, simulatePerfect, type Activity, type CycleStep, type DateKey, type FrequencyRule } from '../../engine';
+import { addDays, cycleLetters, daysBetween, isBefore, isDue, isValidKey, monthRange, nextDue, simulatePerfect, type Activity, type CycleStep, type DateKey, type FrequencyRule } from '../../engine';
 import { defaultRule, validateRule } from '../../engine/presets';
 
 /** `endDate`: the end is not a real date (2026-02-30); `end`: it is one, but before the start. */
@@ -109,7 +109,13 @@ export function previewSummary(a: Activity, y: number, m: number, today: DateKey
   const dueDays = new Set<DateKey>();
   let count = 0;
   if (flexible) {
-    count = Math.round((daysInMonth(y, m) / 7) * (a.freq.times ?? 1));
+    // Only the days of the month between the start and the end count: a 3x-a-week activity starting on
+    // 19 October has 13 days left that month, about 6 sessions, not the 13 of a whole month. Never more
+    // than one a day. A date still being typed (not valid yet) does not narrow the window.
+    const from = isValidKey(a.start) && isBefore(first, a.start) ? a.start : first;
+    const to = a.end && isValidKey(a.end) && isBefore(a.end, last) ? a.end : last;
+    const days = isBefore(to, from) ? 0 : daysBetween(from, to) + 1;
+    count = Math.min(days, Math.round((days / 7) * (a.freq.times ?? 1)));
   } else {
     for (let d = first; !isBefore(last, d); d = addDays(d, 1)) if (isDue(a, d, PL)) { dueDays.add(d); count++; }
   }

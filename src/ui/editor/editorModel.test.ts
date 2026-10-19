@@ -85,6 +85,17 @@ describe('editor model', () => {
     const flex = { ...d, freq: { ...defaultRule(), type: 'perWeek' as const, times: 3 } };
     expect(previewSummary(flex, 2026, 9, TODAY)).toMatchObject({ flexible: true, count: 13, next: null });
   });
+  it('counts weekly sessions only over the days of the month the activity runs', () => {
+    const flex = { ...newDraft('x', '2026-10-19'), name: 'Read', freq: { ...defaultRule(), type: 'perWeek' as const, times: 3 } };
+    // 19–31 October is 13 days: about 6 sessions (the preview said "About 13 times in October").
+    expect(previewSummary(flex, 2026, 10, '2026-10-19').count).toBe(6);
+    expect(previewSummary(flex, 2026, 11, '2026-10-19').count).toBe(13); // a whole month: 30 / 7 × 3
+    expect(previewSummary({ ...flex, end: '2026-11-07' }, 2026, 11, '2026-10-19').count).toBe(3); // 1–7 November
+    expect(previewSummary({ ...flex, end: '2026-10-25' }, 2026, 11, '2026-10-19').count).toBe(0); // over before November
+    expect(previewSummary(flex, 2026, 9, '2026-10-19').count).toBe(0); // not started yet
+    expect(previewSummary({ ...flex, freq: { ...flex.freq, times: 7 }, end: '2026-10-20' }, 2026, 10, '2026-10-19').count).toBe(2); // one a day at most
+    expect(previewSummary({ ...flex, start: '2026-10-' }, 2026, 10, '2026-10-19').count).toBe(13); // a start still being typed
+  });
   it('edits cycle steps and weekdays immutably', () => {
     const r = defaultRule();
     const added = addCycleStep(r, '  Cardio  ');
