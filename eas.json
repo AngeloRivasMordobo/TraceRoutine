@@ -6,11 +6,17 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "image": "sdk-57"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "ios": {
+        "image": "sdk-57"
+      }
     },
     "production": {
       "channel": "production",
