@@ -43,8 +43,8 @@ Se hace una sola vez por cuenta; TraceCosts, TracePhysique y las siguientes apps
 - [ ] **Acuerdos**: en developer.apple.com y en App Store Connect → Negocio, aceptar los acuerdos pendientes con el usuario Account Holder. Para apps gratuitas basta el acuerdo de apps gratuitas. El acuerdo de apps de pago, los datos bancarios y fiscales solo hacen falta cuando haya compras (TR-96).
 - [ ] **Ley de Servicios Digitales (UE)**: en App Store Connect → Negocio, declarar el estado de **comerciante** (trader) de MORDOBO TECHNOLOGIES LLC con dirección, teléfono y correo, que se muestran en la ficha de la UE. Sin esta declaración la app no se distribuye en la UE, y España es mercado objetivo.
 - [ ] **Correo de soporte**: crear `support@mordobo.com` y probar que recibe correo. Lo usan la app ("Enviar comentarios"), la política de privacidad, la ficha y las notas para la revisión.
-- [ ] **URL de soporte**: App Store Connect pide una **URL**, no un correo. Hace falta una página pública con el contacto, por ejemplo una página de soporte en el mismo GitHub Pages que la política. Está pendiente de decidir y de crear.
-- [ ] **Política de privacidad en línea**: `https://angelorivasmordobo.github.io/TraceRoutine/privacy.html` (español; inglés en `#en`). La versión que nombra a MORDOBO TECHNOLOGIES LLC y a `support@mordobo.com` está en esta rama, y la página publicada solo cambia cuando llegue a la rama que sirve GitHub Pages. Hay que comprobarlo antes de enviar a revisión.
+- [ ] **URL de soporte**: App Store Connect pide una **URL**, no un correo: `https://angelorivasmordobo.github.io/TraceRoutine/support.html` (inglés en `#en`), que sale de `docs/support.html` (contacto y preguntas frecuentes: dónde están los datos, cambiar de teléfono, borrar los datos, recordatorios, actividades activas). GitHub Pages sirve `/docs` desde `main`, así que la página responde 404 hasta que se fusione; comprobar que da 200 antes de enviar a revisión.
+- [ ] **Política de privacidad en línea**: `https://angelorivasmordobo.github.io/TraceRoutine/privacy.html` (español; inglés en `#en`). La página publicada ya nombra a MORDOBO TECHNOLOGIES LLC y a `support@mordobo.com` (comprobado el 20 de octubre de 2026: responde 200).
 - [ ] **Expo / EAS**: cuenta `angeloleonelrivas` (dueña del proyecto en `app.json`). Usar Node 22, porque EAS CLI ya avisa de que Node 20 está obsoleto. Iniciar sesión con `npx eas-cli@latest login`.
 - [ ] **Credenciales de equipo en EAS** (se crean en el primer build y el primer envío interactivos, §3):
   - *Certificado de distribución (Apple Distribution)*: si EAS ofrece uno existente del equipo, **reutilizarlo**. **No revocar nunca** un certificado: los perfiles de las otras apps dependen de él.
@@ -55,27 +55,29 @@ Se hace una sola vez por cuenta; TraceCosts, TracePhysique y las siguientes apps
 
 ## 2. Ficha de la app en App Store Connect
 
+**Textos listos para pegar**: `store/app-store/LISTING.md` tiene, por idioma (es-MX, es-ES, en-US), el nombre, el subtítulo, el texto promocional, la descripción, las palabras clave, las novedades y los textos de las capturas, y además las categorías, las URL, App Privacy, la clasificación por edad, las notas para la revisión y el cumplimiento de exportación. `src/release/storeListing.test.ts` comprueba los límites de Apple y que ningún texto público hable de Pro, precios, anuncios ni de la otra plataforma.
+
 App Store Connect → Apps → **+** → Nueva app. Otra opción: dejar que `eas submit` la cree en el §3, porque usa `appName` de `eas.json`. En ese caso el idioma principal es Inglés (EE. UU.), salvo que antes se añadan `language` (por ejemplo `es-MX`) y `sku` en `submit.production.ios`, y entonces también hay que actualizar `storeConfig.test.ts`. Crearla a mano evita tocar `eas.json`.
 
 | Campo | Valor |
 |---|---|
 | Plataforma | iOS |
 | Nombre | `TraceRoutine` (tiene que estar libre en el App Store; si no lo está, ver TR-86) |
-| Idioma principal | **Decisión del dueño**. Sugerencia: Español (México) si LATAM es el mercado principal. Es el idioma que se muestra donde no hay traducción. |
+| Idioma principal | **Español (México)**. Es el idioma que se muestra donde no hay traducción. |
 | Bundle ID | `app.traceroutine` (EAS lo registra en el primer build; si no aparece en la lista, registrarlo en developer.apple.com → Identifiers) |
 | SKU | `traceroutine-ios` (interno, no se muestra) |
 | Acceso de usuarios | Acceso completo |
 
 Después, en **Información de la app**:
 
-- [ ] **Localizaciones**: Español e Inglés, las mismas que declara el binario.
-- [ ] **Subtítulo** (30 caracteres como máximo; sugerencia, la copia final es de TR-80): ES "Tu frecuencia real, sin culpa" · EN "Your real frequency. No guilt."
-- [ ] **Categoría**: decisión del dueño. Sugerencia: Productividad como principal y Estilo de vida como secundaria. Evitar Medicina, por el posicionamiento no médico de TR-81.
+- [ ] **Localizaciones**: Español (México), Español (España) e Inglés (EE. UU.); el binario declara Español e Inglés.
+- [ ] **Subtítulo** (30 caracteres como máximo): ES "Hábitos con tu frecuencia real" · EN "Habits at your real frequency" (en `store/app-store/LISTING.md`)
+- [ ] **Categoría**: Productividad como principal y Estilo de vida como secundaria. Evitar Medicina y Salud y forma física, por el posicionamiento no médico de TR-81.
 - [ ] **Derechos de contenido**: "No contiene, muestra ni accede a contenido de terceros".
 - [ ] **Clasificación por edad**: ver §6.
 - [ ] **URL de la política de privacidad**: ES `…/privacy.html`, EN `…/privacy.html#en`.
 - [ ] **Copyright**: `2026 MORDOBO TECHNOLOGIES LLC`.
-- [ ] **Precio y disponibilidad**: Gratis. Países: decisión del dueño (todos, o LATAM + España + EE. UU.).
+- [ ] **Precio y disponibilidad**: Gratis. Países: todos menos China continental.
 - [ ] Copiar el **Apple ID** numérico de la app (Información de la app → Apple ID) para el §3.
 
 Ficha de la versión 1.0 (por idioma): descripción, palabras clave, texto promocional, URL de soporte, URL de marketing (opcional), capturas (§8), build, notas para la revisión (§7) y contacto para la revisión (nombre, teléfono y correo de Angelo).
@@ -194,7 +196,7 @@ Cuestionario de App Store Connect (Información de la app → Clasificación por
 | Bloque | Pregunta | Respuesta |
 |---|---|---|
 | Controles en la app | Controles parentales · Verificación de edad | No · No |
-| Capacidades | Acceso web sin restricciones · Contenido generado por usuarios · Mensajería o chat · Publicidad | No · No · No · No (la app solo abre su política en Safari) |
+| Capacidades | Acceso web sin restricciones · Contenido generado por usuarios · Mensajería o chat · Redes sociales · Publicidad | No · No · No · No · No (la app solo abre su política en Safari) |
 | Temas para adultos | Lenguaje soez o humor grosero · Terror o miedo · Alcohol, tabaco o drogas | Ninguno |
 | Médico o bienestar | Información médica o de tratamiento · Temas de salud o bienestar | Ninguno · No (*) |
 | Sexualidad o desnudez | — | Ninguno |
@@ -204,7 +206,7 @@ Cuestionario de App Store Connect (Información de la app → Clasificación por
 
 Resultado esperado: **4+**.
 
-(*) Decisión del dueño: TraceRoutine registra rutinas (incluida la sugerencia "Tratamiento cada 2 días") pero no da información médica ni de bienestar, y la política lo deja claro en "Aviso no médico". Si se prefiere declarar algo aquí, revisar cómo cambia la clasificación.
+(*) Decisión del dueño: TraceRoutine registra rutinas (incluida la sugerencia "Tratamiento cada 2 días") pero no da información médica ni de bienestar, y la política lo deja claro en "Aviso no médico". Responder **Sí** a "Temas de salud o bienestar" sube la clasificación a **9+**. Las respuestas en inglés, con los nombres que muestra App Store Connect, están en `store/app-store/LISTING.md`.
 
 ---
 
@@ -212,21 +214,7 @@ Resultado esperado: **4+**.
 
 - **¿Requiere inicio de sesión?** No. No hace falta cuenta de demostración.
 - **Contacto**: Angelo Rivas, teléfono de Angelo, `support@mordobo.com`.
-- **Notas** (en inglés, para pegar tal cual):
-
-```text
-TraceRoutine is a local-first routine tracker. There is no account or sign-in: all data is stored on the device (SQLite). This version has no in-app purchases, no ads, and no analytics or crash reporting service configured, so it sends no data. The app allows up to 5 active activities at a time.
-
-How to review:
-1. On first launch the onboarding can be skipped ("Skip"). Then pick a suggestion such as "Train every other day" to create a first activity, or tap "Something else". The "+" tab creates more activities.
-2. Today: tap the circle to mark an activity done, long-press it to log the minimum version, or swipe the row left to skip it with an optional reason. Tapping the activity name opens a menu with the same actions ("I did the minimum", "Skip", "Edit"), also available to VoiceOver.
-3. Month shows the month grid; tap a past cell to change it. Stats shows consistency over scheduled days only.
-4. Settings: language (ES/EN), theme, reminders (local notifications only), "Export CSV" and "Save backup (JSON)" through the share sheet, "Import backup" from Files, "Privacy" (privacy policy), "Send feedback" (email) and "Delete all data" (asks to type DELETE, or BORRAR in Spanish).
-5. Reminders: the notification permission is requested after a short explanation, either from Settings ("Turn on reminders") or the first time an activity with a reminder is saved (new activities have one at 08:00 by default). Notifications arrive only on the days an activity is due.
-6. With 5 active activities, creating another shows a message; "See my activities" opens Month, and an activity's editor has "Archive".
-
-Support: support@mordobo.com
-```
+- **Notas** (en inglés, para pegar tal cual): en `store/app-store/LISTING.md` → *App Review information* (incluye el aviso no médico y el modo de compatibilidad en iPad).
 
 ---
 
@@ -240,7 +228,7 @@ Como la app es solo para iPhone, **no hay que subir capturas de iPad**.
 | iPhone 6,5" | 1284 × 2778 · 1242 × 2688 | Solo si no se suben las de 6,9" |
 
 - Entre 1 y 10 capturas por idioma (ES y EN), en PNG o JPEG sin transparencia. Apple reduce las de 6,9" a las pantallas más pequeñas.
-- Conjunto sugerido (5 por idioma, con la app en ese idioma): Hoy con actividades pendientes · Mes (cuadrícula) · Editor con la frecuencia y la vista previa del mes · Estadísticas · Recordatorio o la pantalla "No todo es diario".
+- Conjunto: las 8 pantallas en orden, los datos de ejemplo y el texto de cada captura por idioma están en `store/app-store/LISTING.md` → *Screenshots*.
 - **Cómo sacarlas sin Xcode**: desde el build de TestFlight en un iPhone real. Un iPhone 16 Pro Max da 1320 × 2868, y un 14/15 Pro Max o un Plus da 1290 × 2796. Con un iPhone de 6,1" (1179 × 2556) la proporción es la misma (diferencia menor de 0,1 %) y basta con escalarla: `sips -z 2796 1290 captura.png --out captura-6.9.png`.
 - No usar capturas de la versión web: la tipografía, los selectores y la barra de estado no son los de iOS, y Apple pide capturas de la app en uso (guía 2.3.3).
 - El vídeo de vista previa es opcional (el vídeo de 20 s de la cuadrícula de TR-80 puede ir aquí).
@@ -258,11 +246,11 @@ Como la app es solo para iPhone, **no hay que subir capturas de iPad**.
 
 ## Pendientes del dueño (resumen)
 
-- [ ] Crear `support@mordobo.com` y decidir la **URL de soporte**.
+- [ ] Crear `support@mordobo.com` y, al fusionar, comprobar que `support.html` responde 200.
 - [ ] Declarar el estado de comerciante para la DSA de la UE.
-- [ ] Llevar la política actualizada a la rama de GitHub Pages.
-- [ ] Decidir el idioma principal, las categorías, los países y el subtítulo de la ficha.
-- [ ] Confirmar la clasificación por edad (pregunta de salud o bienestar).
+- [x] Llevar la política actualizada a la rama de GitHub Pages (publicada; 200 el 20 de octubre de 2026).
+- [ ] Revisar la ficha de `store/app-store/LISTING.md` (idioma principal es-MX, Productividad / Estilo de vida, todos los países menos China continental, subtítulo y textos).
+- [ ] Confirmar la clasificación por edad (pregunta de salud o bienestar: No → 4+, Sí → 9+).
 - [ ] Primer build y envío interactivo (§3), y luego `ascAppId` en `eas.json`.
 - [ ] Decidir qué hacer con el build iOS de vista previa en CI.
 - [ ] Revisión en iPhone real (§4) y capturas (§8).
