@@ -6,6 +6,9 @@
  * (`analyticsAllowed`, `showsPro`), the app's languages, the public links, the business-rule numbers the
  * listing quotes and the screenshots in the repo. When one diverges, the failure says which App Store Connect
  * fields to change before the next build is submitted, and that the record and the JSON change in the same PR.
+ * It also checks that every "no account" / "your data stays on your device" line in the listing, the policy,
+ * the support page, the docs and the app's own strings is still there while it is true and gone once it is not,
+ * that the record's status lines agree with the JSON, and that none of the public files carries a secret.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -28,8 +31,10 @@ const read = (path: string) => readFileSync(join(root, path), 'utf8');
 
 const RECORD = 'store/app-store/APP-STORE-CONNECT.md';
 const JSON_FILE = 'store/app-store/app-store-declarations.json';
+const LISTING = 'store/app-store/LISTING.md';
+const PLAY_RECORD = 'store/google-play/GOOGLE-PLAY-CONSOLE.md';
 const recordMd = read(RECORD);
-const listingMd = read('store/app-store/LISTING.md');
+const listingMd = read(LISTING);
 const privacyHtml = read('docs/privacy.html');
 
 type Key = keyof typeof record.declarations;
@@ -132,10 +137,20 @@ const SOURCES = [...sourceFiles(join(root, 'app')), ...sourceFiles(join(root, 's
 const codeMatching = (re: RegExp) => SOURCES.filter((s) => re.test(s.text)).map((s) => s.file).sort();
 const routes = SOURCES.filter((s) => s.file.startsWith('app/')).map((s) => s.file);
 
-const NETWORK_CODE = /\bfetch\s*\(|\bXMLHttpRequest\b|\bnew WebSocket\b|\bEventSource\b|\bsendBeacon\b/;
+/** Code that talks to a server: fetch and friends, and the expo-file-system transfers. */
+const NETWORK_CODE = /\bfetch\s*\(|\bXMLHttpRequest\b|\bnew WebSocket\b|\bEventSource\b|\bsendBeacon\b|\buploadAsync\b|\bdownloadAsync\b|\bcreateUploadTask\b|\bcreateDownloadResumable\b|\bdownloadFileAsync\b/;
+/** The in-app browser (SFSafariViewController / Custom Tabs) from expo-web-browser. */
+const WEB_BROWSER_CODE = /['"]expo-web-browser['"]|\bopenBrowserAsync\b|\bopenAuthSessionAsync\b/;
 const PUSH_TOKEN_CODE = /getExpoPushTokenAsync|getDevicePushTokenAsync|registerForRemoteNotifications/;
 const AGE_CODE = /\b(?:MIN(?:IMUM)?_AGE|AGE_GATE|ageGate|minimumAge|minAge|birth(?:date|year|day)|dateOfBirth)\b/i;
-const AUTH_ROUTE = /(?:^|[/(_-])(?:log-?in|sign-?in|sign-?up|auth|account|register|password)/i;
+/** A route whose file name is about an account. */
+const AUTH_ROUTE = /(?:^|[/(_-])(?:log-?in|log-?out|sign-?in|sign-?out|sign-?up|auth|account|register|password|profile)/i;
+/** What only a login has, wherever the screen lives: a password field, an auth session, a sign-in call. */
+const LOGIN_CODE = /\bsecureTextEntry\b|\btextContentType=\{?\s*['"](?:password|newPassword|username)['"]|\bautoComplete=\{?\s*['"](?:password|current-password|new-password|username)['"]|\bopenAuthSessionAsync\b|\bsignInAsync\b|\bsignInWith[A-Z]\w*/;
+/** What only a sign-up has: a route for it, a new-password field, an account-creation call. */
+const SIGN_UP_ROUTE = /(?:^|[/(_-])(?:sign-?up|register|create-?account)/i;
+const SIGN_UP_CODE = /\btextContentType=\{?\s*['"]newPassword['"]|\bautoComplete=\{?\s*['"]new-password['"]|\bcreateUserWith\w+|\bsignUp\s*\(/;
+const PARENTAL_CODE = /\bFamilyControls\b|\bFamilyActivityPicker\b|\bparental\s*controls?\b|\bparentalControls?\b/i;
 
 const list = (items: string[], none: string) => (items.length ? items.join('; ') : none);
 
@@ -143,7 +158,17 @@ const list = (items: string[], none: string) => (items.length ? items.join('; ')
 // Facts several declarations share
 // ---------------------------------------------------------------------------------------------------------
 
-const authHits = [...depsMatching(SDKS.auth).map((d) => `${d} in dependencies`), ...routes.filter((r) => AUTH_ROUTE.test(r)).map((r) => `route ${r}`)];
+const signUpHits = [...routes.filter((r) => SIGN_UP_ROUTE.test(r)).map((r) => `route ${r}`), ...codeMatching(SIGN_UP_CODE).map((f) => `account creation in ${f}`)];
+const loginHits = [
+  ...new Set([
+    ...depsMatching(SDKS.auth).map((d) => `${d} in dependencies`),
+    ...routes.filter((r) => AUTH_ROUTE.test(r)).map((r) => `route ${r}`),
+    ...codeMatching(LOGIN_CODE).map((f) => `password field or sign-in call in ${f}`),
+    ...signUpHits,
+  ]),
+];
+const browserCalls = codeMatching(WEB_BROWSER_CODE);
+const webViewDeps = depsMatching(SDKS.webView);
 const backendHits = [...depsMatching(SDKS.backend), ...depsMatching(SDKS.chat)].map((d) => `${d} in dependencies`);
 const adsHits = [
   ...depsMatching(SDKS.ads).map((d) => `${d} in dependencies`),
@@ -162,13 +187,76 @@ const minimumAgeInCode = (() => {
   const n = SOURCES.map((s) => /export const MIN(?:IMUM)?_AGE\s*=\s*(\d+)/.exec(s.text)?.[1]).find(Boolean);
   return n ? Number(n) : `age check in ${ageHits.join(', ')}`;
 })();
-const ageRatingAnswersNow = {
-  advertising: adsHits.length > 0,
-  unrestrictedWebAccess: depsMatching(SDKS.webView).length > 0,
-  userGeneratedContent: backendHits.length > 0,
-  messagingAndChat: depsMatching(SDKS.chat).length > 0,
-  ageAssurance: minimumAgeInCode !== null,
+const parentalHits = [
+  ...depsMatching(/family-?controls|screen-?time|parental/).map((d) => `${d} in dependencies`),
+  ...codeMatching(PARENTAL_CODE),
+  ...(ios.entitlements && 'com.apple.developer.family-controls' in ios.entitlements ? ['Family Controls entitlement'] : []),
+];
+/**
+ * The age-rating answers as the build gives them. Two are the owner's to give and are taken from the JSON:
+ * "Health or wellness topics" (forced to Yes once the app reads health data) and "Unrestricted web access"
+ * while the only browser is expo-web-browser (forced to Yes by a WebView).
+ */
+function ageRatingAnswersNow(declared: Record<string, unknown>) {
+  const owner = (answer: string) => (typeof declared[answer] === 'boolean' ? declared[answer] : 'true or false (owner decision)');
+  return {
+    parentalControls: parentalHits.length > 0,
+    ageAssurance: minimumAgeInCode !== null,
+    unrestrictedWebAccess: webViewDeps.length > 0 ? true : browserCalls.length > 0 ? owner('unrestrictedWebAccess') : false,
+    userGeneratedContent: backendHits.length > 0,
+    messagingAndChat: depsMatching(SDKS.chat).length > 0,
+    socialMedia: backendHits.length > 0,
+    advertising: adsHits.length > 0,
+    healthOrWellnessTopics: healthHits.length > 0 ? true : owner('healthOrWellnessTopics'),
+  };
+}
+const RATINGS = ['4+', '9+', '13+', '16+', '18+'];
+/** Entries of ageRating.raisedBy that are Step 2 content answers, given by hand (the code cannot check them). */
+const STATED_CONTENT = /^content: /;
+
+interface SignIn {
+  mode: string;
+  gate: { file: string; constant: string } | null;
+}
+const SIGN_IN_MODES = ['none', 'optional', 'required'];
+/** signIn.gate points at `export const <constant> = true | false`: true makes the login required, false optional. */
+function readGate(gate: SignIn['gate']): { value: boolean } | { error: string } {
+  if (!gate || typeof gate.file !== 'string' || typeof gate.constant !== 'string' || !/^[A-Za-z_$][\w$]*$/.test(gate.constant)) {
+    return { error: 'signIn.gate must be { "file": "<path>", "constant": "<NAME>" }: the exported boolean that makes the login required (true) or optional (false), read by the route guard' };
+  }
+  if (!existsSync(join(root, gate.file))) return { error: `${gate.file} (signIn.gate.file) does not exist: the login gate moved or was removed` };
+  const m = new RegExp(`export const ${gate.constant.replace(/\$/g, '\\$')}\\b(?:\\s*:\\s*boolean)?\\s*=\\s*(true|false)\\b`).exec(read(gate.file));
+  return m ? { value: m[1] === 'true' } : { error: `no "export const ${gate.constant} = true | false" in ${gate.file}: the login gate was renamed, moved or is no longer a plain boolean` };
+}
+/** Both screenshot sets live in the repo: the 6.9-inch originals and the 6.3-inch copies App Store Connect takes. */
+const SCREENSHOT_SETS: Record<string, { width: number; height: number }> = {
+  'store/app-store/screenshots': { width: 1320, height: 2868 },
+  'store/app-store/screenshots-6.3': { width: 1206, height: 2622 },
 };
+/** How the 6.3-inch copies were made (byte for byte with sips on macOS 26.6). */
+const RESIZE_COMMAND = 'for f in store/app-store/screenshots/*/*.png; do o="store/app-store/screenshots-6.3/${f#store/app-store/screenshots/}"; mkdir -p "$(dirname "$o")"; sips -z 2622 1206 "$f" --out "$o"; done';
+function screenshotsIn(dir: string) {
+  const abs = join(root, dir);
+  if (!existsSync(abs)) return [];
+  return readdirSync(abs)
+    .filter((locale) => statSync(join(abs, locale)).isDirectory())
+    .sort()
+    .map((locale) => ({ locale, files: readdirSync(join(abs, locale)).filter((f) => f.endsWith('.png')).sort() }));
+}
+/** Width, height and transparency from the PNG header and chunk list. */
+function pngInfo(path: string) {
+  const b = readFileSync(path);
+  if (b.toString('latin1', 1, 4) !== 'PNG') return { width: 0, height: 0, alpha: false };
+  const chunks: string[] = [];
+  for (let at = 8; at + 8 <= b.length; ) {
+    const type = b.toString('latin1', at + 4, at + 8);
+    chunks.push(type);
+    if (type === 'IEND') break;
+    at += 12 + b.readUInt32BE(at);
+  }
+  const colorType = b[25];
+  return { width: b.readUInt32BE(16), height: b.readUInt32BE(20), alpha: colorType === 4 || colorType === 6 || chunks.includes('tRNS') };
+}
 const pagesBase = PRIVACY_POLICY_URL.slice(0, PRIVACY_POLICY_URL.lastIndexOf('/') + 1);
 const perLocale = <T,>(fn: (lang: Lang, locale: string) => T) => Object.fromEntries(localizations.map((l) => [l, fn(langOf(l) as Lang, l)]));
 
@@ -267,15 +355,32 @@ const CHECKS: Record<Key, Check> = {
     })),
     asc: 'export compliance: confirm each library only uses exempt encryption (or set usesNonExemptEncryption to true and answer the questions for the build).',
   },
-  signInRequired: {
-    verify: same(() => ({ now: authHits.length > 0, evidence: list(authHits, 'no sign-in SDK in dependencies and no sign-in route in app/') })),
-    asc: 'App Review Information → "Sign-in required" = Yes and a demo account (its credentials only in App Store Connect, never in the repo); App Privacy → the account data (Contact Info, Identifiers → User ID, linked to the user); in-app account deletion (guideline 5.1.1(v)), shown in the review notes; Sign in with Apple if a third-party login is offered (guideline 4.8).',
-    also: 'every "no account" line: LISTING.md (Promotional text and Description in every locale, review Notes, storeListing.test.ts), docs/privacy.html, docs/support.html; on Google Play, Data safety and the account-deletion link.',
+  signIn: {
+    verify: (declared) => {
+      const d = (declared ?? {}) as SignIn;
+      const evidence = list(loginHits, 'no sign-in SDK in dependencies, no account route in app/, and no password field or sign-in call in app/ or src/');
+      if (!SIGN_IN_MODES.includes(d.mode)) return { now: 'mode "none", "optional" or "required"', evidence: `signIn.mode is ${JSON.stringify(d.mode)}` };
+      if (!loginHits.length) return d.mode === 'none' && d.gate === null ? null : { now: { mode: 'none', gate: null }, evidence };
+      if (d.mode === 'none') {
+        return { now: { mode: 'optional or required', gate: { file: '<file>', constant: '<NAME>' } }, evidence: `${evidence}. The build has a login now: declare whether it is optional or required, and point signIn.gate at the constant that decides it` };
+      }
+      const gate = readGate(d.gate);
+      if ('error' in gate) return { now: { mode: d.mode, gate: 'missing' }, evidence: gate.error };
+      const now = gate.value ? 'required' : 'optional';
+      return now === d.mode ? null : { now: { mode: now, gate: d.gate }, evidence: `${d.gate?.constant} is ${gate.value} in ${d.gate?.file}: the login went from ${d.mode} to ${now}` };
+    },
+    asc: 'App Review Information → Sign-In Information: "Sign-in required" and a demo account (its credentials only in App Store Connect, never in the repo). An optional login still needs the demo account for the features behind it (guideline 2.1); a required login needs real account-based features to justify it (guideline 5.1.1(v)) and a line in the review Notes saying why. App Privacy → the data the account holds (Contact Info, Identifiers → User ID, linked to the user). In-app account deletion if accounts can be created (guideline 5.1.1(v)). Sign in with Apple if a third-party login is offered (guideline 4.8).',
+    also: 'every "no account" line, word for word in CLAIMS below: LISTING.md (header, Promotional text and Description in every locale, App Privacy, App Review information, review Notes), docs/privacy.html, docs/support.html, docs/RELEASE-IOS.md §5 and §7, README.md, CLAUDE.md, and the Settings footer settings.localData (src/i18n/*.json, screenshot 08); on Google Play (store/google-play/GOOGLE-PLAY-CONSOLE.md), App access, Data safety and account deletion.',
   },
   accountCreation: {
-    verify: same(() => ({ now: authHits.length > 0, evidence: list(authHits, 'no sign-in SDK in dependencies and no sign-in route in app/') })),
+    verify: (declared) => {
+      if (typeof declared !== 'boolean') return { now: 'true or false', evidence: 'accountCreation must be a boolean' };
+      if (signUpHits.length && !declared) return { now: true, evidence: list(signUpHits, '') };
+      if ((declarations.signIn as SignIn).mode === 'none' && declared) return { now: false, evidence: 'signIn.mode is "none": nobody can create an account' };
+      return null; // with a login and no sign-up in code (accounts made elsewhere), it is stated by hand in the record
+    },
     asc: 'the account-deletion path in the app and in App Review Information → Notes (guideline 5.1.1(v)); App Privacy → the data the account holds.',
-    also: 'docs/privacy.html (what the account stores, how to delete it) and Google Play Data safety (account deletion URL).',
+    also: 'docs/privacy.html (what the account stores, how to delete it), every "no account" line (see signIn), and Google Play Data safety and account deletion URL (store/google-play/GOOGLE-PLAY-CONSOLE.md).',
   },
   dataCollected: {
     verify: same(() => {
@@ -286,13 +391,18 @@ const CHECKS: Record<Key, Check> = {
       ];
       return { now: hits.length > 0, evidence: list(hits, 'analyticsAllowed("ios") is false and no other data-collecting SDK ships') };
     }),
-    asc: 'App Privacy → Get Started → "Yes, we collect data from this app", then every data type with its purpose, linkage and tracking (RELEASE-IOS.md §5 has the expected answers for PostHog and Sentry).',
-    also: 'docs/privacy.html ("La versión actual no transmite ningún dato"), LISTING.md (Description "TUS DATOS…", review Notes "the app sends no data"), and the usage-stats switch that then shows in Settings (screenshot 08).',
+    asc: 'App Privacy → Get Started → "Yes, we collect data from this app", then every data type with its purpose, linkage and tracking (RELEASE-IOS.md §5 has the expected answers for PostHog and Sentry); App Privacy → User Privacy Choices URL, now that there is something to opt out of.',
+    also: 'every "no data" and "your data stays on your device" line, word for word in CLAIMS below: docs/privacy.html ("La versión actual no transmite ningún dato"), LISTING.md (header, Description "TUS DATOS…", captions 8, App Privacy, review Notes "the app sends no data"), docs/support.html, docs/RELEASE-IOS.md §5, CLAUDE.md, and the Settings footer settings.localData (src/i18n/*.json), plus the usage-stats switch that then shows in Settings (screenshot 08).',
   },
   networkCalls: {
-    verify: same(() => ({ now: codeMatching(NETWORK_CODE), evidence: 'fetch / XMLHttpRequest / WebSocket / EventSource in app/ and src/' })),
+    verify: same(() => ({ now: codeMatching(NETWORK_CODE), evidence: 'fetch / XMLHttpRequest / WebSocket / EventSource / sendBeacon / expo-file-system uploads and downloads in app/ and src/' })),
     asc: 'App Privacy: decide whether what that code sends is collected (and dataCollected with it); then list the file in "networkCalls" and record the decision in APP-STORE-CONNECT.md.',
     also: 'docs/privacy.html and the LISTING.md "App Privacy" section ("No network code").',
+  },
+  inAppBrowserCalls: {
+    verify: same(() => ({ now: browserCalls, evidence: 'expo-web-browser (openBrowserAsync, openAuthSessionAsync) in app/ and src/' })),
+    asc: 'App Information → Age Rating → Unrestricted Web Access: decide whether that in-app browser lets people browse the web freely (Yes raises the rating) and set ageRatingAnswers.unrestrictedWebAccess to the answer; then list the file in "inAppBrowserCalls" and record the decision in APP-STORE-CONNECT.md. openAuthSessionAsync is also a login: see "signIn".',
+    also: 'LISTING.md → Age rating ("No in-app browser") and §4 of the record.',
   },
   tracking: {
     verify: same(() => {
@@ -326,16 +436,20 @@ const CHECKS: Record<Key, Check> = {
   },
   ageRating: {
     verify: (declared) => {
-      if (declared !== '4+') return null; // anything else was entered after re-running the questionnaire
-      const raises = [
-        ...Object.entries(ageRatingAnswersNow).filter(([, yes]) => yes).map(([answer]) => `${answer} = Yes`),
-        ...(minimumAgeInCode !== null ? ['a minimum age in code'] : []),
-        ...(healthHits.length ? ['the app reads health data (Health or Wellness Topics)'] : []),
+      const d = (declared ?? {}) as { rating?: string; raisedBy?: string[] };
+      const raisedBy = Array.isArray(d.raisedBy) ? d.raisedBy : [];
+      const fromBuild = Object.entries(ageRatingAnswersNow(record.declarations.ageRatingAnswers)).filter(([, yes]) => yes === true).map(([answer]) => `${answer} = Yes`).sort();
+      const recorded = raisedBy.filter((r) => !STATED_CONTENT.test(r)).sort();
+      const problems = [
+        ...(typeof d.rating === 'string' && RATINGS.includes(d.rating) ? [] : [`rating ${JSON.stringify(d.rating)} is not one of ${RATINGS.join(', ')}`]),
+        ...(Array.isArray(d.raisedBy) ? [] : ['raisedBy must list what raised the rating ([] when every answer is No / None)']),
+        ...(isDeepStrictEqual(recorded, fromBuild) ? [] : [`the rating was calculated with ${list(recorded, 'every answer No / None')}; the build and the owner's answers now give ${list(fromBuild, 'every answer No / None')}`]),
+        ...(raisedBy.length === 0 && d.rating !== '4+' ? ['nothing raised the rating, so the questionnaire gives 4+ (a higher one needs its reason in raisedBy; an override goes in ageRatingOverride)'] : []),
       ];
-      return raises.length ? { now: 're-run the age-rating questionnaire', evidence: raises.join('; ') } : null;
+      return problems.length ? { now: { rating: 're-run the questionnaire', raisedBy: [...fromBuild, ...raisedBy.filter((r) => STATED_CONTENT.test(r))] }, evidence: problems.join('; ') } : null;
     },
-    asc: 'App Information → Age Rating: answer the questionnaire again and record the calculated rating.',
-    also: 'docs/privacy.html ("Menores" / "Children") and the Google Play content rating.',
+    asc: 'App Information → Age Rating: answer the questionnaire again, then record the calculated rating in ageRating.rating and the answers that raised it in ageRating.raisedBy (Step 2 content answers by hand, as "content: <question> = <answer>").',
+    also: 'docs/privacy.html ("Menores" / "Children"), LISTING.md → Age rating, and the IARC content rating in store/google-play/GOOGLE-PLAY-CONSOLE.md.',
   },
   ageRatingOverride: {
     verify: (declared) => {
@@ -346,11 +460,17 @@ const CHECKS: Record<Key, Check> = {
     asc: 'App Information → Age Rating → "Age Categories and Override".',
   },
   ageRatingAnswers: {
-    verify: same(() => ({
-      now: ageRatingAnswersNow,
-      evidence: 'advertising ← ads SDKs; unrestrictedWebAccess ← react-native-webview; userGeneratedContent ← a backend or chat SDK; messagingAndChat ← a chat SDK; ageAssurance ← an age check in code',
-    })),
-    asc: 'App Information → Age Rating: change the answers that moved (Advertising, Unrestricted Web Access, User-Generated Content, Messaging and Chat, Age Assurance) and record the calculated rating.',
+    verify: (declared) => {
+      const now = ageRatingAnswersNow((declared ?? {}) as Record<string, unknown>);
+      return isDeepStrictEqual(now, declared)
+        ? null
+        : {
+            now,
+            evidence: 'parentalControls ← Family Controls / parental-control code; ageAssurance ← an age check in code; unrestrictedWebAccess ← react-native-webview (owner decision with expo-web-browser in inAppBrowserCalls); userGeneratedContent and socialMedia ← a backend or chat SDK; messagingAndChat ← a chat SDK; advertising ← ads SDKs; healthOrWellnessTopics ← owner decision, Yes once the app reads health data',
+          };
+    },
+    asc: 'App Information → Age Rating: change the answers that moved (Parental Controls, Age Assurance, Unrestricted Web Access, User-Generated Content, Messaging and Chat, Social Media, Advertising, Health or Wellness Topics), then record the calculated rating in ageRating.',
+    also: 'LISTING.md → Age rating, docs/RELEASE-IOS.md §6, and the IARC questionnaire in store/google-play/GOOGLE-PLAY-CONSOLE.md.',
   },
   regulatedMedicalDevice: {
     verify: same(() => {
@@ -440,13 +560,16 @@ const CHECKS: Record<Key, Check> = {
   },
   screenshotsPerLocale: {
     verify: same(() => {
-      const dir = join(root, 'store/app-store/screenshots');
-      const counts = Object.fromEntries(readdirSync(dir).filter((d) => statSync(join(dir, d)).isDirectory()).map((d) => [d, readdirSync(join(dir, d)).filter((f) => f.endsWith('.png')).length]));
-      const values = [...new Set(Object.values(counts))];
-      return { now: values.length === 1 ? values[0] : counts, evidence: 'PNG files per locale in store/app-store/screenshots/' };
+      const sets = Object.keys(SCREENSHOT_SETS).map((dir) => ({ dir, locales: screenshotsIn(dir) }));
+      const counts = [...new Set(sets.flatMap((s) => s.locales.map((l) => l.files.length)))];
+      const sameFiles = sets.every((s) => isDeepStrictEqual(s.locales, sets[0].locales));
+      return {
+        now: counts.length === 1 && sameFiles && sets[0].locales.length ? counts[0] : Object.fromEntries(sets.map((s) => [s.dir, Object.fromEntries(s.locales.map((l) => [l.locale, l.files]))])),
+        evidence: 'PNG files per locale in store/app-store/screenshots/ (6.9-inch originals) and store/app-store/screenshots-6.3/ (the 6.3-inch copies that are uploaded), with the same locales and file names in both',
+      };
     }),
-    asc: 'Version → screenshots in every localization: upload the new set (the 6.3-inch copies, 1206 × 2622) in number order; screenshots only change with a new version.',
-    also: 'the LISTING.md "Screenshots" table and the captions, store/app-store/screenshots/README.md, and the 6.3-inch copies in ~/Desktop/Capturas-AppStore/TraceRoutine.',
+    asc: 'Version → screenshots in every localization: upload the new set (store/app-store/screenshots-6.3/, 1206 × 2622) in number order; screenshots only change with a new version.',
+    also: `the LISTING.md "Screenshots" table and the captions, store/app-store/screenshots/README.md, and both sets (regenerate the 6.3-inch copies with: ${RESIZE_COMMAND}).`,
   },
 };
 
@@ -470,6 +593,103 @@ describe('App Store declarations match the build', () => {
   }
 });
 
+// ---------------------------------------------------------------------------------------------------------
+// What the texts claim: every line that says what a declaration says, word for word
+// ---------------------------------------------------------------------------------------------------------
+
+type Holds = 'signIn' | 'accountCreation' | 'dataCollected' | 'networkCalls';
+const HOLDS: Record<Holds, { holds: boolean; stops: string }> = {
+  signIn: { holds: (declarations.signIn as SignIn).mode === 'none', stops: 'signIn.mode is no longer "none"' },
+  accountCreation: { holds: declarations.accountCreation === false, stops: 'accountCreation is true' },
+  dataCollected: { holds: declarations.dataCollected === false, stops: 'dataCollected is true' },
+  networkCalls: { holds: (declarations.networkCalls as string[]).length === 0, stops: 'networkCalls is not empty' },
+};
+const NO_ACCOUNT: Holds[] = ['signIn', 'accountCreation'];
+/** "Your data stays on your device" stops being true with an account (sync, a server) or with data collection. */
+const ON_DEVICE: Holds[] = ['signIn', 'accountCreation', 'dataCollected'];
+const NO_DATA: Holds[] = ['dataCollected', 'networkCalls'];
+
+/**
+ * Each quote must be in its file while every declaration it depends on holds, and gone once one stops
+ * holding. A reworded line fails too, so this list (and the rows of the record that name these lines) stays
+ * the exact list of what to rewrite when a declaration changes.
+ */
+const CLAIMS: { file: string; quote: string; while: Holds[]; where?: string }[] = [
+  { file: LISTING, quote: 'iPhone only, no account', while: NO_ACCOUNT, where: 'header' },
+  { file: LISTING, quote: 'Sin cuenta y sin rachas', while: NO_ACCOUNT, where: 'es-MX Promotional text' },
+  { file: LISTING, quote: 'Sin cuenta ni rachas', while: NO_ACCOUNT, where: 'es-ES Promotional text' },
+  { file: LISTING, quote: 'No account, no streaks', while: NO_ACCOUNT, where: 'en-US Promotional text' },
+  { file: LISTING, quote: 'Sin cuenta ni registro', while: NO_ACCOUNT, where: 'es-MX and es-ES Description' },
+  { file: LISTING, quote: 'No account, no sign-up', while: NO_ACCOUNT, where: 'en-US Description' },
+  { file: LISTING, quote: 'No account, no sign-in, no server', while: NO_ACCOUNT, where: 'App Privacy' },
+  { file: LISTING, quote: '| Sign-in required | **No**', while: NO_ACCOUNT, where: 'App Review information' },
+  { file: LISTING, quote: 'There is no account or sign-in, so no demo account is needed', while: NO_ACCOUNT, where: 'review Notes' },
+  { file: RECORD, quote: '| ¿Requiere iniciar sesión? | **No**', while: NO_ACCOUNT, where: '§9' },
+  { file: 'docs/privacy.html', quote: 'La app no tiene cuentas de usuario, no requiere registro', while: NO_ACCOUNT },
+  { file: 'docs/privacy.html', quote: 'The app has no user accounts, requires no sign-up', while: NO_ACCOUNT },
+  { file: 'docs/support.html', quote: 'TraceRoutine no tiene cuentas ni servidores', while: NO_ACCOUNT },
+  { file: 'docs/support.html', quote: 'TraceRoutine has no accounts and no servers', while: NO_ACCOUNT },
+  { file: 'docs/RELEASE-IOS.md', quote: 'No hay cuenta ni registro', while: NO_ACCOUNT, where: '§5' },
+  { file: 'docs/RELEASE-IOS.md', quote: '**¿Requiere inicio de sesión?** No', while: NO_ACCOUNT, where: '§7' },
+  { file: 'README.md', quote: 'Local-first, no account', while: NO_ACCOUNT },
+  { file: 'CLAUDE.md', quote: 'Local-first: SQLite, no account', while: NO_ACCOUNT },
+
+  { file: 'src/i18n/es.json', quote: '"localData": "Tus datos viven en tu dispositivo"', while: ON_DEVICE, where: 'Settings footer, seen in screenshot 08' },
+  { file: 'src/i18n/en.json', quote: '"localData": "Your data lives on your device"', while: ON_DEVICE, where: 'Settings footer, seen in screenshot 08' },
+  { file: LISTING, quote: '8. Tus datos viven en tu dispositivo', while: ON_DEVICE, where: 'es-MX caption 8' },
+  { file: LISTING, quote: '8. Tus datos se quedan en tu móvil', while: ON_DEVICE, where: 'es-ES caption 8' },
+  { file: LISTING, quote: '8. Your data lives on your device', while: ON_DEVICE, where: 'en-US caption 8' },
+  { file: LISTING, quote: 'TUS DATOS, EN TU TELÉFONO', while: ON_DEVICE, where: 'es-MX Description' },
+  { file: LISTING, quote: 'TUS DATOS, EN TU MÓVIL', while: ON_DEVICE, where: 'es-ES Description' },
+  { file: LISTING, quote: 'YOUR DATA STAYS ON YOUR PHONE', while: ON_DEVICE, where: 'en-US Description' },
+  { file: 'store/app-store/screenshots/README.md', quote: '"Tus datos viven en tu dispositivo" / "Your data lives on your device" footer', while: ON_DEVICE, where: 'screenshot 08' },
+  { file: 'docs/privacy.html', quote: '<h2>Tus datos viven en tu dispositivo</h2>', while: ON_DEVICE },
+  { file: 'docs/privacy.html', quote: '<h2>Your data lives on your device</h2>', while: ON_DEVICE },
+  { file: 'docs/privacy.html', quote: 'no sube tus datos a ningún servidor', while: ON_DEVICE },
+  { file: 'docs/privacy.html', quote: 'uploads nothing to any server', while: ON_DEVICE },
+  { file: 'docs/support.html', quote: 'la app no los envía a ningún sitio', while: ON_DEVICE },
+  { file: 'docs/support.html', quote: 'the app sends them nowhere', while: ON_DEVICE },
+
+  { file: LISTING, quote: 'no analytics or crash reporting', while: NO_DATA, where: 'header' },
+  { file: LISTING, quote: '**No, we do not collect data from this app**', while: NO_DATA, where: 'App Privacy' },
+  { file: LISTING, quote: '**No network code.**', while: ['networkCalls'], where: 'App Privacy' },
+  { file: LISTING, quote: 'the app sends no data (App Privacy: Data Not Collected)', while: NO_DATA, where: 'review Notes' },
+  { file: RECORD, quote: '**No, no recopilamos datos de esta app**', while: NO_DATA, where: '§7' },
+  { file: 'docs/privacy.html', quote: 'La versión actual no transmite ningún dato', while: NO_DATA },
+  { file: 'docs/privacy.html', quote: 'The current version transmits no data', while: NO_DATA },
+  { file: 'docs/RELEASE-IOS.md', quote: 'el build de producción no envía ningún dato', while: NO_DATA, where: '§5' },
+  { file: 'docs/RELEASE-IOS.md', quote: '**No, no recopilamos datos de esta app**', while: NO_DATA, where: '§5' },
+  { file: 'CLAUDE.md', quote: 'iOS v1 collects nothing ("Data Not Collected" on the App Store)', while: NO_DATA },
+];
+
+describe('App Store declarations: what the texts claim', () => {
+  it('keeps every "no account" and "your data stays on your device" line in step with the declarations', () => {
+    const problems: string[] = [];
+    for (const claim of CLAIMS) {
+      const text = read(claim.file);
+      const broken = claim.while.filter((h) => !HOLDS[h].holds);
+      const where = `${claim.file}${claim.where ? ` (${claim.where})` : ''}`;
+      if (!broken.length && !text.includes(claim.quote)) {
+        problems.push(`${where} no longer says "${claim.quote}" word for word. If it was reworded, quote the new words in CLAIMS (src/release/appStoreDeclarations.test.ts) and in the row that names it in ${RECORD}; if the line is gone, drop it from both.`);
+      }
+      if (broken.length && text.includes(claim.quote)) {
+        const store = claim.file === LISTING ? ' and in App Store Connect (Promotional text at any time, the rest with the next version)' : claim.file.startsWith('src/i18n/') ? ', and retake screenshot 08 in both sets' : '';
+        problems.push(`${where} still says "${claim.quote}", but ${broken.map((h) => HOLDS[h].stops).join(' and ')}: rewrite it in this PR${store}.`);
+      }
+    }
+    expect(problems, 'texts that no longer match the declarations').toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// The record itself
+// ---------------------------------------------------------------------------------------------------------
+
+/** Every file in this public repo that talks about the store accounts. */
+const PUBLIC_FILES = [RECORD, JSON_FILE, LISTING, PLAY_RECORD, 'store/app-store/screenshots/README.md', 'docs/RELEASE-IOS.md', 'docs/privacy.html', 'docs/support.html', 'README.md', 'CLAUDE.md', 'AGENTS.md'];
+/** MORDOBO TECHNOLOGIES LLC's Team ID: public (it signs every binary) and quoted in LISTING.md and RELEASE-IOS.md. */
+const PUBLIC_APPLE_IDS = ['CTC5PRH3D3'];
+
 describe('App Store declarations: the record', () => {
   it(`checks every declaration in ${JSON_FILE}, and each one has its row in ${RECORD}`, () => {
     expect(Object.keys(declarations).sort()).toEqual(Object.keys(CHECKS).sort());
@@ -477,14 +697,50 @@ describe('App Store declarations: the record', () => {
     expect(missing, `add a row to "Qué depende de qué" in ${RECORD} for`).toEqual([]);
   });
 
-  it('says which version it describes and whether anything was entered', () => {
+  it('says which version it describes, and its status lines agree with the JSON', () => {
+    const { status, enteredOn, build, updatedOn } = record.record as { status: string; enteredOn: string | null; build: string | null; updatedOn: string };
     expect(recordMd, `${RECORD} must say "**Versión que describe**: ${record.declarations.version}"`).toContain(`**Versión que describe**: ${record.declarations.version}`);
-    expect(['pendiente de introducir', 'parcialmente introducido', 'introducido']).toContain(record.record.status);
-    if (record.record.status === 'pendiente de introducir') {
-      expect(record.record.enteredOn).toBeNull();
-      expect(recordMd).toContain('pendiente de introducir');
+    expect(['pendiente de introducir', 'parcialmente introducido', 'introducido']).toContain(status);
+    expect(recordMd, `${RECORD} must say "**Estado del registro**: \`${status}\`" (record.status in ${JSON_FILE})`).toContain(`**Estado del registro**: \`${status}\``);
+    expect(updatedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const entered = [...recordMd.matchAll(/\|\s*introducido (\d{4}-\d{2}-\d{2})/g)].map((m) => m[1]).sort();
+    const pending = recordMd.match(/\|\s*pendiente de introducir/g)?.length ?? 0;
+    if (status === 'pendiente de introducir') {
+      expect(entered, `fields marked "introducido" in ${RECORD} while record.status is "pendiente de introducir"`).toEqual([]);
+      expect(enteredOn, 'record.enteredOn must be null while nothing is entered').toBeNull();
+      expect(build, 'record.build must be null while nothing is entered').toBeNull();
+      expect(pending, `${RECORD} has no field "pendiente de introducir"`).toBeGreaterThan(0);
+    } else {
+      expect(entered.length, `record.status is "${status}" but no field in ${RECORD} is marked "introducido AAAA-MM-DD"`).toBeGreaterThan(0);
+      expect(enteredOn, 'record.enteredOn is the date of the first entry in the record').toBe(entered[0]);
+      expect(build, 'record.build is the build the entries describe').toMatch(/\S/);
+      if (status === 'introducido') expect(pending, `record.status is "introducido" but fields in ${RECORD} are still "pendiente de introducir"`).toBe(0);
+      else expect(pending, `record.status is "parcialmente introducido" but nothing in ${RECORD} is pending: set it to "introducido"`).toBeGreaterThan(0);
     }
-    expect(record.record.updatedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const history = recordMd.slice(recordMd.indexOf('## Historial'));
+    expect([...new Set(entered)].filter((date) => !history.includes(`| ${date} |`)), `every entry date needs its line in the Historial of ${RECORD}`).toEqual([]);
+    expect(entered.filter((date) => date > updatedOn), `record.updatedOn in ${JSON_FILE} is older than an entry`).toEqual([]);
+  });
+
+  it('points at the Google Play record', () => {
+    expect(existsSync(join(root, PLAY_RECORD)), `${PLAY_RECORD} is missing`).toBe(true);
+    expect(recordMd, `${RECORD} must name ${PLAY_RECORD}`).toContain(PLAY_RECORD);
+    expect(read('CLAUDE.md'), `CLAUDE.md must name ${PLAY_RECORD}`).toContain(PLAY_RECORD);
+  });
+
+  it('keeps both screenshot sets in the repo at their App Store sizes, without transparency', () => {
+    const wrong: string[] = [];
+    for (const [dir, size] of Object.entries(SCREENSHOT_SETS)) {
+      const locales = screenshotsIn(dir);
+      if (!locales.length) wrong.push(`${dir}/ is missing`);
+      for (const { locale, files } of locales) {
+        for (const file of files) {
+          const png = pngInfo(join(root, dir, locale, file));
+          if (png.width !== size.width || png.height !== size.height || png.alpha) wrong.push(`${dir}/${locale}/${file} is ${png.width} × ${png.height}${png.alpha ? ' with transparency' : ''}, not ${size.width} × ${size.height} without it`);
+        }
+      }
+    }
+    expect(wrong, `App Store Connect takes the 6.3-inch set (store/app-store/screenshots-6.3/, 1206 × 2622). Regenerate it from the 6.9-inch originals with: ${RESIZE_COMMAND}`).toEqual([]);
   });
 
   it('quotes in LISTING.md and on the support page the same numbers the code uses', () => {
@@ -509,11 +765,15 @@ describe('App Store declarations: the record', () => {
     }
   });
 
-  it('holds no secrets: the repo is public', () => {
-    for (const [file, text] of [[RECORD, recordMd], [JSON_FILE, read(JSON_FILE)]] as const) {
+  it('holds no secrets in the public files: the repo is public', () => {
+    for (const file of PUBLIC_FILES) {
+      const text = read(file);
       expect(text, `${file}: a UUID looks like an issuer ID or a key`).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-      expect(text, `${file}: App Store Connect API key file`).not.toMatch(/AuthKey_|-----BEGIN/);
+      expect(text, `${file}: an App Store Connect API key file or a private key`).not.toMatch(/AuthKey_|-----BEGIN|\.p8\b/);
+      const appleIds = [...text.matchAll(/\b(?=[A-Z0-9]*\d)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{10}\b/g)].map((m) => m[0]).filter((id) => !PUBLIC_APPLE_IDS.includes(id));
+      expect(appleIds, `${file}: 10-character Apple identifiers (an API key ID, a certificate or another team); only the Team ID may appear`).toEqual([]);
       expect(text, `${file}: a phone number`).not.toMatch(/\+\d[\d ()-]{8,}\d/);
+      expect(text, `${file}: a phone number`).not.toMatch(/\(?\b\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b/);
     }
   });
 });

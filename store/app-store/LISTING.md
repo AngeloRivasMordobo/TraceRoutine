@@ -476,6 +476,8 @@ Already declared in the binary: `app.json` → `ios.config.usesNonExemptEncrypti
 
 ## Screenshots (6.9-inch iPhone, 1320 × 2868 px, portrait)
 
+**Upload the 6.3-inch copies** in [`screenshots-6.3/`](screenshots-6.3/) (1206 × 2622 px), made from the 6.9-inch originals in [`screenshots/`](screenshots/) with the command in [`screenshots/README.md`](screenshots/README.md): App Store Connect asked for the 6.3-inch class (lesson 1 in [`APP-STORE-CONNECT.md`](APP-STORE-CONNECT.md)).
+
 Produced separately. Capture them from the TestFlight build on a real iPhone (RELEASE-IOS.md §8), with the app in the screenshot's language and the default dark theme. The es-MX and es-ES sets can use the same Spanish screenshots with their own captions; en-US needs the app in English.
 
 **Sample data** (create it before capturing; at most 5 active activities). Set each activity's "Empieza" / "Starts" date 3 to 4 weeks back and fill the past by tapping cells in Month, so Stats has numbers and a trend. Avoid medication or treatment activities in the screenshots.

@@ -7,6 +7,14 @@ The order and captions come from [`../LISTING.md`](../LISTING.md) ("Screenshot c
 - `es-MX/`: the app in Spanish, for Spanish (Mexico) and also for Spanish (Spain). The app has a single Spanish, so es-ES uses the same files with its own captions.
 - `en-US/`: the app in English, for English (U.S.).
 
+**The set that is uploaded is the 6.3-inch copy** in [`../screenshots-6.3/`](../screenshots-6.3/): the same files, 1206 × 2622 px, RGB PNG without alpha. App Store Connect asked TracePhysique for the 6.3-inch "iPhone with Dynamic Island (medium display)" class on 2026-10-21, not 6.9-inch (lesson 1 in [`../APP-STORE-CONNECT.md`](../APP-STORE-CONNECT.md)). The copies are made from this set with `sips`; on macOS 26.6 the command below reproduces the committed files byte for byte. Run it from the repo root after retaking any screenshot, and commit both sets together:
+
+```bash
+for f in store/app-store/screenshots/*/*.png; do o="store/app-store/screenshots-6.3/${f#store/app-store/screenshots/}"; mkdir -p "$(dirname "$o")"; sips -z 2622 1206 "$f" --out "$o"; done
+```
+
+`src/release/appStoreDeclarations.test.ts` checks both sets: their size, that they have no transparency, and that they have the same locales and file names (`screenshotsPerLocale`).
+
 The sample data is made up. Five activities (the LISTING sample set) were created in the editor with start dates from September 24 to 29, and their past days were filled in by tapping cells in Month. The English set has the same activities and logs with English names, brought in with Settings → "Import backup".
 
 | File | Screen | es-MX caption | es-ES caption | en-US caption |
