@@ -30,9 +30,42 @@ export function onLangChange(fn: (l: Lang) => void): () => void {
   return () => listeners.delete(fn);
 }
 
-/** Picks the device language once at startup ("es-DO" → es, anything else → en). */
+/** One locale tag to a language the app speaks ("es-DO" → es, anything else → en). */
 export function detectLang(locale: string | undefined): Lang {
-  return (locale ?? '').toLowerCase().startsWith('es') ? 'es' : 'en';
+  return langFromLocales([locale]);
+}
+
+/**
+ * The first of the device's preferred languages that the app speaks, in the user's own
+ * order ("fr-FR, es-MX" → es), which is how iOS picks a localization too. English otherwise.
+ */
+export function langFromLocales(tags: readonly (string | null | undefined)[]): Lang {
+  for (const tag of tags) {
+    const code = (tag ?? '').toLowerCase().split(/[-_]/)[0];
+    if ((LANGS as string[]).includes(code)) return code as Lang;
+  }
+  return 'en';
+}
+
+export const isLang = (value: string | null | undefined): value is Lang => !!value && (LANGS as string[]).includes(value);
+
+/**
+ * The language to start in: the one the user picked in the app, if any; otherwise the device's.
+ *
+ * `followSystem` (iOS): iOS offers Settings → TraceRoutine → Language, which changes the device list
+ * the app reads. `pickedOn` is the device language at the moment of the in-app pick. When the
+ * device language is no longer that one, the user changed it in iOS after picking in the app, and
+ * that newer choice wins. While it stays the same, the in-app pick wins as everywhere else.
+ */
+export function resolveLang(
+  saved: string | undefined,
+  deviceTags: readonly (string | null | undefined)[],
+  { followSystem = false, pickedOn }: { followSystem?: boolean; pickedOn?: string } = {},
+): Lang {
+  const device = langFromLocales(deviceTags);
+  if (!isLang(saved)) return device;
+  if (followSystem && isLang(pickedOn) && pickedOn !== device) return device;
+  return saved;
 }
 
 type Params = Record<string, string | number>;
@@ -50,6 +83,15 @@ export function interpolate(template: string, params?: Params): string {
 export function t(key: string, params?: Params, lang: Lang = current): string {
   const value = lookup(dicts[lang], key) ?? lookup(dicts.en, key);
   return typeof value === 'string' ? interpolate(value, params) : key;
+}
+
+/**
+ * A text with a count `{n}`: `${key}One` when n is 1 and the dictionary has it ("1 time", "1 vez"), `key`
+ * otherwise ("2 times"). English and Spanish need no other plural forms.
+ */
+export function tCount(key: string, n: number, params: Params = {}, lang: Lang = current): string {
+  const one = `${key}One`;
+  return t(n === 1 && typeof lookup(dicts[lang], one) === 'string' ? one : key, { ...params, n }, lang);
 }
 
 function list(key: string, lang: Lang): string[] {

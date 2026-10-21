@@ -8,8 +8,17 @@
     "scheme": "traceroutine",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "app.traceroutine"
+      "supportsTablet": false,
+      "bundleIdentifier": "app.traceroutine",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleLocalizations": [
+          "en",
+          "es"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -45,7 +54,14 @@
           "defaultChannel": "reminders"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "./plugins/withIosLocales",
+        {
+          "en": "./locales/en.json",
+          "es": "./locales/es.json"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

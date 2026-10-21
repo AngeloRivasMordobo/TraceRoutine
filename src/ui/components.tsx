@@ -44,7 +44,7 @@ export function Card({ children, style }: { children: React.ReactNode; style?: S
 export function Tag({ label, tone = 'neutral' }: { label: string; tone?: 'accent' | 'neutral' | 'outline' }) {
   const th = useTheme();
   const bg = tone === 'accent' ? th.accentTint : tone === 'neutral' ? th.surface2 : 'transparent';
-  const color = tone === 'accent' ? accentRamp[100] : tone === 'neutral' ? th.text : th.accent;
+  const color = tone === 'accent' ? th.accentTagText : tone === 'neutral' ? th.text : th.accent;
   return (
     <View style={[styles.tag, { backgroundColor: bg, borderColor: tone === 'outline' ? th.accent : 'transparent' }]}>
       <Text style={[styles.tagLabel, { color }]}>{label}</Text>
@@ -60,7 +60,8 @@ export function Eyebrow({ children }: { children: string }) {
 
 /** The screen kicker above each title: accent, 10.5 px, wide tracking. */
 export function Kicker({ children }: { children: string }) {
-  return <Text style={[styles.kicker, { color: accentRamp[400] }]}>{children.toUpperCase()}</Text>;
+  const th = useTheme();
+  return <Text style={[styles.kicker, { color: th.kicker }]}>{children.toUpperCase()}</Text>;
 }
 
 /** The screen title under a Kicker. */

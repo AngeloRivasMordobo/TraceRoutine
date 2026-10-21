@@ -4,10 +4,12 @@
  */
 import { useSyncExternalStore } from 'react';
 import { todayKey, type Activity, type DateKey, type Log, type LogLookup, type LogState } from '../engine';
-import { detectLang, setLang as setI18nLang, type Lang } from '../i18n';
+import { isLang, langFromLocales, resolveLang, setLang as setI18nLang, type Lang } from '../i18n';
+import { deviceLocaleTags } from '../i18n/device';
 import type { ThemeMode } from '../ui/theme';
 import { createMemoryPersister, createPersister, type Persister, type Snapshot } from '../data/persistence';
 import { setAnalyticsOptOut } from '../analytics';
+import { isActive, passesActiveLimit } from './limits';
 import { sampleActivities, sampleLogs } from './sample';
 
 export interface AppState {
@@ -30,7 +32,7 @@ const logKey = (activityId: string, date: DateKey) => `${activityId}|${date}`;
 
 let state: AppState = {
   ready: false,
-  lang: detectLang(undefined),
+  lang: 'en', // bootstrapStore() replaces it with the saved choice or the device language
   themeMode: 'dark',
   onboarded: false,
   hintDismissed: false,
@@ -43,6 +45,14 @@ let state: AppState = {
   logs: {},
 };
 let persister: Persister = createMemoryPersister();
+/** iOS: a language chosen in Settings → TraceRoutine → Language after an in-app pick wins (see `resolveLang`). */
+let followSystemLang = false;
+
+/** Save a language the app should start in; on iOS, with the device language it was saved against. */
+async function saveLang(lang: Lang): Promise<void> {
+  await persister.setSetting('lang', lang);
+  if (followSystemLang) await persister.setSetting('deviceLang', langFromLocales(deviceLocaleTags()));
+}
 
 const listeners = new Set<() => void>();
 function emit(next: Partial<AppState>) {
@@ -50,11 +60,19 @@ function emit(next: Partial<AppState>) {
   listeners.forEach((l) => l());
 }
 
-export async function bootstrapStore(seedSamples = __DEV__): Promise<void> {
+/** `os` is `Platform.OS`, passed in so the store stays free of React Native (and testable in Node). */
+export async function bootstrapStore(seedSamples = __DEV__, os = 'unknown'): Promise<void> {
   persister = await createPersister();
   const snap = await persister.load();
-  const lang = (snap.settings.lang as Lang | undefined) ?? state.lang;
+  followSystemLang = os === 'ios';
+  // First launch follows the device (es-* → Spanish); once the user picks a language, that wins,
+  // except on iOS when the language was changed in iOS Settings after the pick.
+  const tags = deviceLocaleTags();
+  const saved = snap.settings.lang;
+  const lang = resolveLang(saved, tags, { followSystem: followSystemLang, pickedOn: snap.settings.deviceLang });
   setI18nLang(lang);
+  // Keep the device language next to a saved pick, so the next change in iOS Settings is noticed.
+  if (followSystemLang && isLang(saved) && (lang !== saved || snap.settings.deviceLang !== langFromLocales(tags))) await saveLang(lang);
   let activities = snap.activities;
   let logs = snap.logs;
   if (seedSamples && !activities.length && !snap.settings.seeded) {
@@ -93,7 +111,7 @@ export const appStore = {
   setLang(lang: Lang) {
     setI18nLang(lang);
     emit({ lang });
-    void persister.setSetting('lang', lang);
+    void saveLang(lang);
   },
   setThemeMode(themeMode: ThemeMode) {
     emit({ themeMode });
@@ -121,9 +139,17 @@ export const appStore = {
     emit({ activities });
     void persister.saveActivity(a);
   },
-  setArchived(id: string, archived: boolean) {
+  /**
+   * Archive an activity or bring it back. Bringing one back when the active limit is already reached
+   * changes nothing and returns false, so the caller can say why; archiving always succeeds.
+   */
+  setArchived(id: string, archived: boolean): boolean {
     const a = state.activities.find((x) => x.id === id);
-    if (a) appStore.upsertActivity({ ...a, archived });
+    if (!a) return false;
+    const next = { ...a, archived };
+    if (passesActiveLimit(state.activities, next, state.today)) return false;
+    appStore.upsertActivity(next);
+    return true;
   },
   deleteActivity(id: string) {
     const logs = Object.fromEntries(Object.entries(state.logs).filter(([, l]) => l.activityId !== id));
@@ -148,7 +174,7 @@ export const appStore = {
     void persister.setSetting('proInterest', '1');
   },
   activeCount(): number {
-    return state.activities.filter((a) => !a.archived && !(a.end && a.end < state.today)).length;
+    return state.activities.filter((a) => isActive(a, state.today)).length;
   },
   snapshot(): Snapshot {
     return {
@@ -160,11 +186,20 @@ export const appStore = {
   /** Import a backup. `replace` wipes first; `merge` keeps the most recent log per activity and date (imported wins on ties). */
   async importSnapshot(snap: Snapshot, mode: 'replace' | 'merge'): Promise<void> {
     if (mode === 'replace') {
+      // The wipe takes the settings table with it; write back what this session still shows, so the next
+      // launch matches it (the analytics opt-out and the morning summary used to come back as defaults).
       await persister.clearAll();
-      for (const key of ['lang', 'themeMode', 'onboarded', 'hintDismissed', 'morningSummary', 'morningTime', 'seeded'] as const) {
-        const v = key === 'lang' ? state.lang : key === 'themeMode' ? state.themeMode : key === 'morningTime' ? state.morningTime : '1';
-        await persister.setSetting(key, v);
-      }
+      await saveLang(state.lang);
+      const keep: Record<string, string> = {
+        themeMode: state.themeMode,
+        onboarded: '1',
+        hintDismissed: '1',
+        morningSummary: state.morningSummary ? '1' : '0',
+        morningTime: state.morningTime,
+        analyticsOptOut: state.analyticsOptOut ? '1' : '0',
+        seeded: '1',
+      };
+      for (const [key, value] of Object.entries(keep)) await persister.setSetting(key, value);
     }
     const byId = new Map(mode === 'merge' ? state.activities.map((a) => [a.id, a] as const) : []);
     for (const a of snap.activities) byId.set(a.id, a);
@@ -177,8 +212,10 @@ export const appStore = {
   async clearAll(): Promise<void> {
     const lang = state.lang;
     await persister.clearAll();
-    await persister.setSetting('lang', lang);
+    await saveLang(lang);
     await persister.setSetting('seeded', '1');
+    // A privacy choice is not data to delete: someone who opted out stays opted out after the next launch.
+    await persister.setSetting('analyticsOptOut', state.analyticsOptOut ? '1' : '0');
     emit({ activities: [], logs: {}, onboarded: false, hintDismissed: false, proInterest: false });
   },
 };

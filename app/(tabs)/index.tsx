@@ -16,6 +16,8 @@ import { activityColor, font, mix, neutral, radius, rgba, space, track as trackE
 type SheetMode = 'skip' | 'value' | 'menu' | null;
 /** The design's check is a 40 px circle at the head of the row. */
 const CHECK = 40;
+/** How much a skipped row fades. */
+const SKIPPED = 0.55;
 
 /**
  * Today (TR-39 … TR-47), laid out as the design canvas's "Lista" default: a large
@@ -48,9 +50,14 @@ export default function TodayScreen() {
 
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: th.bg }]} edges={['top']}>
+      {/* The value and skip sheets are opened from inside each row, so React Native counts their taps as
+          taps in this list: with the default ("never") the list took the first tap on "Done" to close the
+          decimal pad, and nothing was saved until a second tap. "handled" lets the sheet's buttons answer
+          the first tap; a tap on nothing in particular still closes the keyboard. */}
       <FlatList
         data={due}
         keyExtractor={(a) => a.id}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <View>
@@ -172,9 +179,10 @@ function ActivityRow({ a, today }: { a: Activity; today: string }) {
         <View
           style={[
             styles.row,
-            // Opaque: the swipe-to-skip label sits behind this row.
-            { borderColor: hit ? rgba(color, 0.4) : th.surface2, backgroundColor: hit ? mix(th.bg, color, 0.06) : th.bg },
-            st === 'skip' && { opacity: 0.55 },
+            // Opaque: the swipe-to-skip label sits behind this row. A skipped row used to fade as a whole,
+            // which let "SKIP" show through; now its ground is the faded colour, still opaque, and only
+            // its contents fade.
+            { borderColor: hit ? rgba(color, 0.4) : th.surface2, backgroundColor: hit ? mix(th.bg, color, 0.06) : st === 'skip' ? mix(th.surface2, th.bg, SKIPPED) : th.bg },
           ]}>
           <Pressable
             testID={`check-${a.id}`}
@@ -185,7 +193,7 @@ function ActivityRow({ a, today }: { a: Activity; today: string }) {
             onPress={tap}
             onLongPress={minimum}
             delayLongPress={450}
-            style={({ pressed }) => [styles.check, check, pressed && { transform: [{ scale: 0.92 }] }]}>
+            style={({ pressed }) => [styles.check, check, st === 'skip' && styles.skipped, pressed && { transform: [{ scale: 0.92 }] }]}>
             {/* The minimum fills the bottom half of the circle. */}
             {st === 'min' && <View style={[styles.checkHalf, { backgroundColor: color }]} />}
             {hit && <UIIcon name="check" color={st === 'done' ? th.onAccent : neutral[200]} size={19} />}
@@ -194,7 +202,7 @@ function ActivityRow({ a, today }: { a: Activity; today: string }) {
             onPress={() => setSheet('menu')}
             accessibilityRole="button"
             accessibilityLabel={t('today.menu', { name: a.name })}
-            style={{ flex: 1 }}>
+            style={[{ flex: 1 }, st === 'skip' && styles.skipped]}>
             <View style={styles.nameRow}>
               <ActivityIcon name={a.icon} color={color} size={15} />
               <Text style={[styles.name, { color: st === 'skip' ? th.subtle : th.text }]} numberOfLines={1}>{a.name}</Text>
@@ -232,6 +240,7 @@ const styles = StyleSheet.create({
   rowWrap: { borderRadius: 12, marginBottom: space[3], overflow: 'hidden', justifyContent: 'center' },
   skipHint: { position: 'absolute', right: space[6], fontFamily: font.medium, fontSize: font.size.xs, letterSpacing: trackEm('label', font.size.xs) },
   row: { flexDirection: 'row', alignItems: 'center', gap: 11, borderWidth: 1, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 12 },
+  skipped: { opacity: SKIPPED },
   check: { width: CHECK, height: CHECK, borderRadius: CHECK / 2, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   checkHalf: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },

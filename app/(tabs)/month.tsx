@@ -10,7 +10,7 @@ import { UIIcon } from '@/src/ui/icons';
 import { MonthGrid } from '@/src/ui/month/MonthGrid';
 import { shiftMonth } from '@/src/ui/month/gridModel';
 import { useTheme } from '@/src/ui/theme';
-import { accentRamp, font, radius, space } from '@/src/ui/tokens';
+import { font, radius, space } from '@/src/ui/tokens';
 
 export default function MonthScreen() {
   const th = useTheme();
@@ -49,7 +49,7 @@ export default function MonthScreen() {
         </View>
         <View style={styles.barRow}>
           <View style={{ flex: 1 }}><Bar pct={overall.pct ?? 0} height={5} /></View>
-          <Text style={[styles.pct, { color: accentRamp[300] }]}>{overall.pct === null ? '–' : `${overall.pct}%`}</Text>
+          <Text style={[styles.pct, { color: th.accentText }]}>{overall.pct === null ? '–' : `${overall.pct}%`}</Text>
         </View>
         <Text style={[styles.overall, { color: th.subtle }]}>{`${t('month.overall')} · ${t('month.overallHelp')}`}</Text>
       </View>

@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import 'react-native-reanimated';
 import { initPostHog } from '@/src/analytics/posthog';
 import { initSentry, wrapRoot } from '@/src/analytics/sentry';
@@ -30,7 +30,7 @@ function RootLayout() {
   useEffect(() => {
     let stopWatching: (() => void) | undefined;
     let stopAnalytics: (() => void) | undefined;
-    void bootstrapStore().then(async () => {
+    void bootstrapStore(__DEV__, Platform.OS).then(async () => {
       initPostHog(); // no-op without EXPO_PUBLIC_POSTHOG_KEY; the store already applied the opt-out
       stopAnalytics = watchStoreForAnalytics();
       await configureNotifications();

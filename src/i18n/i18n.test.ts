@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyPreset, defaultRule } from '../engine/presets';
-import { detectLang, formatDayMonth, formatMonthYear, formatRelativeDay, formatShortDate, freqLabel, interpolate, localizedCycleSteps, missingKeys, t } from './index';
+import { detectLang, formatDayMonth, formatMonthYear, formatRelativeDay, formatShortDate, freqLabel, interpolate, langFromLocales, localizedCycleSteps, missingKeys, resolveLang, t, tCount } from './index';
 
 describe('i18n dictionaries', () => {
   it('has no missing keys in either language', () => {
@@ -16,6 +16,59 @@ describe('i18n dictionaries', () => {
     expect(detectLang('es-DO')).toBe('es');
     expect(detectLang('en-US')).toBe('en');
     expect(detectLang(undefined)).toBe('en');
+  });
+  it('picks the first device language the app speaks, in the user order', () => {
+    expect(langFromLocales(['es-419'])).toBe('es');
+    expect(langFromLocales(['es_ES'])).toBe('es');
+    expect(langFromLocales(['fr-FR', 'es-MX', 'en-US'])).toBe('es');
+    expect(langFromLocales(['de-DE', 'en-GB', 'es-ES'])).toBe('en');
+    expect(langFromLocales(['pt-BR'])).toBe('en');
+    expect(langFromLocales(['et-EE'])).toBe('en');
+    expect(langFromLocales([])).toBe('en');
+    expect(langFromLocales([null, undefined, 'ES-us'])).toBe('es');
+  });
+  it('starts in the saved language, else in the device language', () => {
+    expect(resolveLang(undefined, ['es-CO'])).toBe('es');
+    expect(resolveLang('en', ['es-CO'])).toBe('en');
+    expect(resolveLang('es', ['en-US'])).toBe('es');
+    expect(resolveLang('fr', ['es-CO'])).toBe('es');
+    expect(resolveLang('', ['en-US'])).toBe('en');
+  });
+  it('on iOS, lets a language changed in iOS Settings after the in-app pick win', () => {
+    const ios = (pickedOn?: string) => ({ followSystem: true, pickedOn });
+    // Picked English in the app on an English phone, then Settings → TraceRoutine → Language → Español.
+    expect(resolveLang('en', ['es-ES'], ios('en'))).toBe('es');
+    // Picked English in the app on a Spanish phone, nothing changed in iOS since: the pick still wins.
+    expect(resolveLang('en', ['es-MX'], ios('es'))).toBe('en');
+    // A region change inside the same language is not a new language choice.
+    expect(resolveLang('en', ['es-MX'], ios('es'))).toBe(resolveLang('en', ['es-ES'], ios('es')));
+    // A pick saved before the device language was recorded keeps winning; nothing saved follows the device.
+    expect(resolveLang('en', ['es-ES'], ios(undefined))).toBe('en');
+    expect(resolveLang(undefined, ['es-ES'], ios('en'))).toBe('es');
+  });
+  it('elsewhere, keeps the in-app pick whatever the device does, as before', () => {
+    expect(resolveLang('en', ['es-ES'], { pickedOn: 'en' })).toBe('en');
+    expect(resolveLang('en', ['es-ES'], { followSystem: false, pickedOn: 'en' })).toBe('en');
+  });
+});
+
+describe('counts', () => {
+  it('says "1 time" / "1 vez", not "1 times" / "1 veces", in Stats', () => {
+    expect(tCount('stats.times', 1, {}, 'en')).toBe('1 time');
+    expect(tCount('stats.times', 1, {}, 'es')).toBe('1 vez');
+    expect(tCount('stats.sessions', 1, {}, 'en')).toBe('1 session');
+    expect(tCount('stats.sessions', 1, {}, 'es')).toBe('1 sesión');
+    expect(tCount('stats.times', 2, {}, 'en')).toBe('2 times');
+    expect(tCount('stats.sessions', 0, {}, 'es')).toBe('0 sesiones');
+  });
+  it('words the editor preview in the singular for one day or one session', () => {
+    expect(tCount('editor.previewDue', 1, { month: 'October' }, 'en')).toBe('Due 1 day in October');
+    expect(tCount('editor.previewDue', 3, { month: 'octubre' }, 'es')).toBe('Toca 3 días en octubre');
+    expect(tCount('editor.previewFlex', 1, { month: 'October' }, 'en')).toBe('About once in October, you pick the day.');
+    expect(tCount('editor.previewFlex', 6, { month: 'octubre' }, 'es')).toBe('Unas 6 veces en octubre, tú eliges los días.');
+  });
+  it('falls back to the plural text where there is no singular one', () => {
+    expect(tCount('today.doneOf', 1, { done: 1, total: 1 }, 'en')).toBe('1 of 1 done');
   });
 });
 

@@ -2,10 +2,28 @@
  * Pure editor logic (TR-31 … TR-38): drafts, validation, anchor examples,
  * duration shortcuts and the preview summary. No React here so it is testable.
  */
-import { addDays, cycleLetters, daysInMonth, isBefore, isDue, isValidKey, monthRange, nextDue, simulatePerfect, type Activity, type CycleStep, type DateKey, type FrequencyRule } from '../../engine';
+import { addDays, cycleLetters, daysBetween, isBefore, isDue, isValidKey, monthRange, nextDue, simulatePerfect, type Activity, type CycleStep, type DateKey, type FrequencyRule } from '../../engine';
 import { defaultRule, validateRule } from '../../engine/presets';
 
-export type DraftError = 'name' | 'days' | 'cycle' | 'end' | 'start' | 'unit' | 'time' | 'everyN' | 'perWeek';
+/** `endDate`: the end is not a real date (2026-02-30); `end`: it is one, but before the start. */
+export type DraftError = 'name' | 'days' | 'cycle' | 'end' | 'endDate' | 'start' | 'unit' | 'time' | 'everyN' | 'perWeek';
+
+/**
+ * The message for each error. An impossible end date used to say "can't be before the start", and an
+ * invalid start showed the raw key "editor.errStart", which no dictionary has.
+ */
+export const DRAFT_ERROR_TEXT: Record<DraftError, string> = {
+  name: 'editor.errName',
+  days: 'editor.errDays',
+  cycle: 'editor.errCycle',
+  end: 'editor.errEnd',
+  endDate: 'editor.errDate',
+  start: 'editor.errDate',
+  unit: 'editor.errUnit',
+  time: 'editor.errTime',
+  everyN: 'editor.errEveryN',
+  perWeek: 'editor.errPerWeek',
+};
 
 export function newDraft(id: string, today: DateKey): Activity {
   return {
@@ -51,7 +69,8 @@ export function validateDraft(a: Activity): DraftError[] {
   if (!a.name.trim()) errors.push('name');
   if (a.record === 'amount' && !(a.unit ?? '').trim()) errors.push('unit');
   if (!isValidKey(a.start)) errors.push('start');
-  if (a.end && (!isValidKey(a.end) || (isValidKey(a.start) && isBefore(a.end, a.start)))) errors.push('end');
+  if (a.end && !isValidKey(a.end)) errors.push('endDate');
+  else if (a.end && isValidKey(a.start) && isBefore(a.end, a.start)) errors.push('end');
   if (a.reminder && !isValidTime(a.reminder)) errors.push('time');
   for (const e of validateRule(a.freq)) {
     if (e === 'weekdays.empty') errors.push('days');
@@ -90,7 +109,13 @@ export function previewSummary(a: Activity, y: number, m: number, today: DateKey
   const dueDays = new Set<DateKey>();
   let count = 0;
   if (flexible) {
-    count = Math.round((daysInMonth(y, m) / 7) * (a.freq.times ?? 1));
+    // Only the days of the month between the start and the end count: a 3x-a-week activity starting on
+    // 19 October has 13 days left that month, about 6 sessions, not the 13 of a whole month. Never more
+    // than one a day. A date still being typed (not valid yet) does not narrow the window.
+    const from = isValidKey(a.start) && isBefore(first, a.start) ? a.start : first;
+    const to = a.end && isValidKey(a.end) && isBefore(a.end, last) ? a.end : last;
+    const days = isBefore(to, from) ? 0 : daysBetween(from, to) + 1;
+    count = Math.min(days, Math.round((days / 7) * (a.freq.times ?? 1)));
   } else {
     for (let d = first; !isBefore(last, d); d = addDays(d, 1)) if (isDue(a, d, PL)) { dueDays.add(d); count++; }
   }

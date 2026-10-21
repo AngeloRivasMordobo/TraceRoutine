@@ -2,20 +2,29 @@
  * Small controls shared by the editor, Today and Month: bottom sheet, stepper, chip, field label, error text.
  */
 import { useState, type ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from './theme';
 import { elevation, font, neutral, radius, rgba, space, TOUCH, track } from './tokens';
 
 export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title?: string; children: ReactNode }) {
   const th = useTheme();
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+  const content = (
+    <>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="close" />
       <View style={[styles.sheet, { backgroundColor: th.surface }, elevation('lg', th)]}>
         <View style={[styles.grab, { backgroundColor: th.line }]} />
         {!!title && <Text style={[styles.sheetTitle, { color: th.text }]}>{title}</Text>}
         {children}
       </View>
+    </>
+  );
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      {/* iOS lays the keyboard over the modal, so a field in a sheet (the value, the typed DELETE) and the
+          button under it ended up hidden. The sheet now rides up on top of the keyboard and the backdrop
+          shrinks. The modal fills the screen, so the view measures the keyboard in screen coordinates.
+          Android keeps the layout that is live on Google Play. */}
+      {Platform.OS === 'ios' ? <KeyboardAvoidingView behavior="padding" style={styles.fill}>{content}</KeyboardAvoidingView> : content}
     </Modal>
   );
 }
@@ -106,6 +115,7 @@ export function Input({ style, onFocus, onBlur, placeholderTextColor, ...props }
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: rgba(neutral[900], 0.5) },
   sheet: { borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, padding: space[6], paddingBottom: space[12], gap: space[3] },
   grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: space[3] },

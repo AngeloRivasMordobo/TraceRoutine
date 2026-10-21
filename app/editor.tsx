@@ -1,8 +1,9 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter, type NativeStackNavigationProp } from 'expo-router';
 import { track } from '@/src/analytics';
-import { FREE_ACTIVE_LIMIT } from '@/src/store/limits';
-import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { offerReminders } from '@/src/reminders/service';
+import { frequencyHelp, isActive, passesActiveLimit, warnsAtLimitOnOpen, type LimitRoute } from '@/src/store/limits';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   activePreset,
@@ -21,18 +22,24 @@ import {
   type FrequencyType,
   type RecordType,
 } from '@/src/engine';
-import { formatMonthYear, formatRelativeDay, localizedCycleSteps, t, weekdayLetters } from '@/src/i18n';
+import { formatMonthYear, formatRelativeDay, localizedCycleSteps, t, tCount, weekdayLetters } from '@/src/i18n';
 import { appStore, newId, useActivity, useAppStore } from '@/src/store/appStore';
 import { Button, Seg } from '@/src/ui/components';
 import { Chip, ErrorText, FieldLabel, Help, Input, Sheet, Stepper } from '@/src/ui/controls';
-import { addCycleStep, anchorExamples, applyDuration, cycleLegend, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
+import { addCycleStep, anchorExamples, applyDuration, cycleLegend, DRAFT_ERROR_TEXT, newDraft, previewSummary, removeCycleStep, toggleWeekday, validateDraft, type DraftError } from '@/src/ui/editor/editorModel';
 import { ActivityIcon, ICON_KEYS, UIIcon } from '@/src/ui/icons';
 import { shiftMonth } from '@/src/ui/month/gridModel';
+import { alertActiveLimit } from '@/src/ui/limitAlert';
 import { TimeField } from '@/src/ui/TimeField';
 import { useTheme } from '@/src/ui/theme';
 import { ACTIVITY_COLOR_KEYS, accentRamp, activityColors, font, mix, neutral, radius, rgba, space, TOUCH } from '@/src/ui/tokens';
 
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+/**
+ * iOS: the dates are typed as YYYY-MM-DD, so the number keyboard with the hyphen, and no autocorrect or
+ * predictions ("I", "The" over a date). Android keeps the keyboard that is live on Google Play.
+ */
+const dateKeyboard = () => (Platform.OS === 'ios' ? ({ keyboardType: 'numbers-and-punctuation', autoCorrect: false, spellCheck: false } as const) : {});
 
 /** Activity editor (TR-31 … TR-38). Everything the preview shows comes from the engine. */
 export default function EditorScreen() {
@@ -40,8 +47,9 @@ export default function EditorScreen() {
   const existing = useActivity(id);
   const today = useAppStore((s) => s.today);
   const lang = useAppStore((s) => s.lang);
-  const activeCount = useAppStore((s) => s.activities.filter((a) => !a.archived && !(a.end && a.end < s.today)).length);
+  const activities = useAppStore((s) => s.activities);
   const router = useRouter();
+  const navigation = useNavigation<NativeStackNavigationProp<Record<string, object | undefined>>>();
   const th = useTheme();
 
   const [draft, setDraft] = useState<Activity>(() => {
@@ -54,7 +62,6 @@ export default function EditorScreen() {
     if (endParam === '21d') d = { ...d, end: applyDuration(today, '21d') };
     return d;
   });
-  const limitReached = !existing && activeCount >= FREE_ACTIVE_LIMIT;
   const [touched, setTouched] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [stepInput, setStepInput] = useState('');
@@ -65,7 +72,11 @@ export default function EditorScreen() {
   const [pm, setPm] = useState(() => ({ y: parseKey(today).y, m: parseKey(today).m }));
 
   const errors = validateDraft(draft);
-  const err = (e: DraftError) => (showErrors && errors.includes(e) ? t(`editor.err${e.charAt(0).toUpperCase()}${e.slice(1)}`) : null);
+  /** The message of the first of these errors the draft has, once Create has been tapped. */
+  const err = (...of: DraftError[]) => {
+    const e = showErrors ? of.find((x) => errors.includes(x)) : undefined;
+    return e ? t(DRAFT_ERROR_TEXT[e]) : null;
+  };
   const patch = (p: Partial<Activity>) => { setDraft((d) => ({ ...d, ...p })); setTouched(true); };
   const patchFreq = (fn: (f: FrequencyRule) => FrequencyRule) => { setDraft((d) => ({ ...d, freq: fn(d.freq) })); setTouched(true); };
   const f = draft.freq;
@@ -76,6 +87,7 @@ export default function EditorScreen() {
   const ex = anchorExamples(n);
   const letters = weekdayLetters(lang);
   const anchor = f.anchor ?? 'calendar';
+  const freqHelp = frequencyHelp(Platform.OS);
 
   const summary = previewSummary(draft, pm.y, pm.m, today);
   const previewLetters = (() => {
@@ -93,37 +105,59 @@ export default function EditorScreen() {
 
   // The editor can be the only route in the stack: first-activity replaces into it,
   // and on web it can be opened directly by URL. back() would have nothing to pop.
-  const dismiss = () => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); };
-  const save = () => {
-    if (errors.length) { setShowErrors(true); return; }
-    if (limitReached) {
-      track('free_limit_reached', { active: activeCount });
-      Alert.alert(t('settings.freeLimitTitle', { limit: FREE_ACTIVE_LIMIT }), t('settings.freeLimitBody'), [
-        { text: t('editor.cancel'), style: 'cancel' },
-        { text: t('settings.freeLimitArchive'), onPress: () => { dismiss(); router.push('/(tabs)/settings'); } },
-        { text: t('settings.freeLimitPro'), onPress: () => { dismiss(); router.push('/(tabs)/settings'); } },
-      ]);
-      return;
-    }
-    appStore.upsertActivity({ ...draft, name: draft.name.trim(), unit: draft.unit?.trim() || null, minimal: draft.minimal?.trim() || null, reminder: draft.reminder || null });
-    if (!existing) track('create_activity', { type: draft.freq.type, anchor: draft.freq.anchor ?? 'calendar', first_activity: firstParam === '1' });
-    if (firstParam === '1') router.replace('/(tabs)/month');
-    else dismiss();
-  };
-  const cancel = () => {
-    if (!touched) return dismiss();
+  const dismiss = useCallback(() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)'); }, [router]);
+  /** A button of the limit alert: close the editor and open where it leads. */
+  const leaveTo = useCallback((to: NonNullable<LimitRoute>) => { dismiss(); router.push(to); }, [dismiss, router]);
+  const askDiscard = useCallback(() => {
     Alert.alert(t('editor.unsaved'), undefined, [
       { text: t('editor.keepEditing'), style: 'cancel' },
       { text: t('editor.discard'), style: 'destructive', onPress: dismiss },
     ]);
+  }, [dismiss]);
+
+  // iOS presents the editor as a sheet that a swipe down closes, and that swipe threw a draft away without
+  // the question the back button asks. Once something has changed, the sheet holds on (it springs back)
+  // and the same question appears. Android has no such gesture; its editor is unchanged.
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    navigation.setOptions({ gestureEnabled: !touched });
+    if (!touched) return;
+    return navigation.addListener('gestureCancel', askDiscard);
+  }, [navigation, touched, askDiscard]);
+
+  // iOS: at the limit, say so as the editor opens for a new activity, not after the form is filled in.
+  // Cancel then closes the editor too, since nothing can be created; Create still checks.
+  const warnedAtOpen = useRef(false);
+  useEffect(() => {
+    if (warnedAtOpen.current) return;
+    warnedAtOpen.current = true;
+    if (!existing && warnsAtLimitOnOpen(Platform.OS) && passesActiveLimit(activities, draft, today)) alertActiveLimit(leaveTo, dismiss);
+  }, [existing, activities, draft, today, leaveTo, dismiss]);
+
+  const save = async () => {
+    if (errors.length) { setShowErrors(true); return; }
+    const next = { ...draft, name: draft.name.trim(), unit: draft.unit?.trim() || null, minimal: draft.minimal?.trim() || null, reminder: draft.reminder || null };
+    if (passesActiveLimit(activities, next, today)) {
+      // iOS v1 sells nothing: the alert states the limit and leads to the activities, with no Pro button (TR-69).
+      track('free_limit_reached', { active: activities.filter((a) => isActive(a, today)).length });
+      return alertActiveLimit(leaveTo);
+    }
+    appStore.upsertActivity(next);
+    if (!existing) track('create_activity', { type: draft.freq.type, anchor: draft.freq.anchor ?? 'calendar', first_activity: firstParam === '1' });
+    // A reminder only fires once the system allows notifications: the first time, explain and ask here (TR-58).
+    if (draft.reminder) await offerReminders();
+    if (firstParam === '1') router.replace('/(tabs)/month');
+    else dismiss();
   };
+  const cancel = () => (touched ? askDiscard() : dismiss());
   const remove = () => {
     Alert.alert(t('editor.deleteConfirm', { name: draft.name }), undefined, [
       { text: t('editor.cancel'), style: 'cancel' },
       { text: t('editor.delete'), style: 'destructive', onPress: () => { appStore.deleteActivity(draft.id); dismiss(); } },
     ]);
   };
-  const archive = () => { appStore.setArchived(draft.id, !draft.archived); dismiss(); };
+  // Bringing an archived activity back is refused at the limit, like creating one (setArchived says so).
+  const archive = () => (appStore.setArchived(draft.id, !draft.archived) ? dismiss() : alertActiveLimit(leaveTo));
 
 
   const { first } = monthRange(pm.y, pm.m);
@@ -140,8 +174,8 @@ export default function EditorScreen() {
         ? t('editor.previewNoteRelative')
         : '';
   const summaryText = summary.flexible
-    ? t('editor.previewFlex', { n: summary.count, month: monthName })
-    : `${t('editor.previewDue', { n: summary.count, month: monthName })}${
+    ? tCount('editor.previewFlex', summary.count, { month: monthName })
+    : `${tCount('editor.previewDue', summary.count, { month: monthName })}${
         summary.dueToday
           ? ` · ${t('editor.previewToday')}${summary.next ? `, ${t('editor.previewThen', { date: formatRelativeDay(summary.next, today) })}` : ''}`
           : summary.next ? ` · ${t('editor.previewNext', { date: formatRelativeDay(summary.next, today) })}` : ''
@@ -160,8 +194,18 @@ export default function EditorScreen() {
         </Pressable>
         <Text style={[styles.title, { color: th.text }]}>{existing ? t('editor.editTitle') : t('editor.newTitle')}</Text>
       </View>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      {/* iOS presents the editor as a page sheet that starts below the status bar. KeyboardAvoidingView
+          measures itself against its parent, not the screen, so it fell short by that offset and the lower
+          fields (unit, minimum, cycle step, dates) could stay under the keyboard. The scroll view now insets
+          its content by the keyboard in screen coordinates and scrolls the focused field into view.
+          On Android this is the same plain view as before. */}
+      <View style={{ flex: 1 }}>
+        {/* iOS: dragging the form also lowers the keyboard, which otherwise stayed over half the form until return. */}
+        <ScrollView
+          contentContainerStyle={styles.body}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : undefined}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
           <FieldLabel style={{ marginTop: 0 }}>{t('editor.name')}</FieldLabel>
           <Input value={draft.name} onChangeText={(v) => patch({ name: v })} placeholder={t('editor.namePlaceholder')} maxLength={30} autoFocus={!existing}  accessibilityLabel={t('editor.name')} />
           <ErrorText>{err('name')}</ErrorText>
@@ -216,7 +260,7 @@ export default function EditorScreen() {
 
           <View style={[styles.rule, { borderTopColor: th.surface2 }]} />
           <Text style={[styles.sectionHeading, { color: th.accentText }]}>{t('editor.frequency')}</Text>
-          <Help>{t('freq.neverPaid')}</Help>
+          {!!freqHelp && <Help>{t(freqHelp)}</Help>}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rowGap}>
             {PRESET_IDS.map((p) => (
               <Chip key={p} label={t(`presets.${p}`)} on={preset === p} onPress={() => patchFreq((r) => applyPreset(r, p, { cycleSteps: localizedCycleSteps(lang) }))} />
@@ -243,6 +287,7 @@ export default function EditorScreen() {
               <Text style={[styles.freqText, { color: th.icon }]}>{t('editor.days')}{n === 2 ? ` (${t('freq.everyOtherDay').toLowerCase()})` : n === 1 ? ` (${t('freq.daily').toLowerCase()})` : ''}</Text>
             </View>
           )}
+          {f.type === 'everyN' && <ErrorText>{err('everyN')}</ErrorText>}
           {f.type === 'weekdays' && (
             <>
               <View style={[styles.rowGap, { marginTop: space[4] }]}>
@@ -265,6 +310,7 @@ export default function EditorScreen() {
                 <Stepper value={times} min={1} max={7} onChange={(v) => patchFreq((r) => ({ ...r, times: v }))} accessibilityLabel={t('editor.timesPerWeek')} />
                 <Text style={[styles.freqText, { color: th.icon }]}>{t('editor.timesPerWeek')}</Text>
               </View>
+              <ErrorText>{err('perWeek')}</ErrorText>
               <Help>{t('editor.youChoose')}</Help>
             </>
           )}
@@ -332,7 +378,7 @@ export default function EditorScreen() {
                       <Text
                         style={[
                           styles.miniText,
-                          { fontFamily: due || flex ? font.medium : font.family, color: due ? accentRamp[100] : flex ? accentRamp[300] : th.faint },
+                          { fontFamily: due || flex ? font.medium : font.family, color: due ? accentRamp[100] : flex ? th.accentText : th.faint },
                         ]}>
                         {previewLetters.get(date) || i + 1}
                       </Text>
@@ -351,13 +397,13 @@ export default function EditorScreen() {
           <View style={styles.twoCol}>
             <View style={{ flex: 1 }}>
               <FieldLabel>{t('editor.starts')}</FieldLabel>
-              <Input value={draft.start} onChangeText={(v) => patch({ start: v })} placeholder="2026-08-27" autoCapitalize="none"  />
+              <Input value={draft.start} onChangeText={(v) => patch({ start: v })} placeholder="2026-08-27" autoCapitalize="none" {...dateKeyboard()} />
               <ErrorText>{err('start')}</ErrorText>
             </View>
             <View style={{ flex: 1 }}>
               <FieldLabel>{t('editor.ends')}</FieldLabel>
-              <Input value={draft.end ?? ''} onChangeText={(v) => patch({ end: v || null })} placeholder="—" autoCapitalize="none"  />
-              <ErrorText>{err('end')}</ErrorText>
+              <Input value={draft.end ?? ''} onChangeText={(v) => patch({ end: v || null })} placeholder="—" autoCapitalize="none" {...dateKeyboard()} />
+              <ErrorText>{err('endDate', 'end')}</ErrorText>
             </View>
           </View>
           <View style={[styles.rowGap, { marginTop: space[3] }]}>
@@ -388,7 +434,7 @@ export default function EditorScreen() {
           <ErrorText>{err('time')}</ErrorText>
 
           <View style={{ height: space[10] }} />
-          <Button label={existing ? t('editor.save') : t('editor.create')} onPress={save} disabled={!draft.name.trim()} />
+          <Button label={existing ? t('editor.save') : t('editor.create')} onPress={() => void save()} disabled={!draft.name.trim()} />
           {!draft.name.trim() && <Help>{t('editor.saveDisabled')}</Help>}
           {existing && (
             <View style={{ gap: space[3], marginTop: space[4] }}>
@@ -398,7 +444,7 @@ export default function EditorScreen() {
           )}
           <View style={{ height: space[12] }} />
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
