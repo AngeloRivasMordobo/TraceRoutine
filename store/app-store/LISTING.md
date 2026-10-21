@@ -5,6 +5,7 @@ Everything App Store Connect asks for the first iOS release, ready to paste. Eac
 - **Seller**: MORDOBO TECHNOLOGIES LLC (Organization, Team ID `CTC5PRH3D3`). Bundle ID `app.traceroutine`, SKU `traceroutine-ios`.
 - **iOS 1.0 ships**: iPhone only, no account, no in-app purchases, no subscriptions, no ads, no analytics or crash reporting. See [`docs/RELEASE-IOS.md`](../../docs/RELEASE-IOS.md) for the build and submission runbook.
 - **Rule for every public text** (name, subtitle, promotional text, description, keywords, What's New, screenshot captions): never mention the other platform or its store, prices, paid plans, ads, or features the iOS build does not show (widget, month sharing, templates, sync). `src/release/storeListing.test.ts` enforces this and Apple's limits: `npm test`.
+- **What is actually entered**: this file is the plan. [`APP-STORE-CONNECT.md`](APP-STORE-CONNECT.md) records what was entered in App Store Connect, field by field, with dates, builds and where it differs from the blocks below.
 - **Languages**: Spanish (Mexico) is the primary language. Spanish (Spain) and English (U.S.) are localizations. The app itself has one Spanish (`src/i18n/es.json`), so in-app labels quoted below are the same in both Spanish listings; the es-ES copy only changes the prose around them.
 
 ---
