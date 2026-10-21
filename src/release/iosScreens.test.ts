@@ -339,14 +339,16 @@ describe('A skipped row on Today', () => {
 });
 
 describe('The "How much?" sheet', () => {
-  const sheet = (record: 'minutes' | 'amount', unit: string | null) => () =>
-    createElement(LogSheet, {
-      activity: { ...newDraft('x', appStore.getState().today), name: 'X', record, unit },
-      date: appStore.getState().today,
-      mode: 'value',
-      visible: true,
-      onClose: () => {},
-    });
+  const sheet = (record: 'minutes' | 'amount', unit: string | null) =>
+    function ValueSheetHarness() {
+      return createElement(LogSheet, {
+        activity: { ...newDraft('x', appStore.getState().today), name: 'X', record, unit },
+        date: appStore.getState().today,
+        mode: 'value',
+        visible: true,
+        onClose: () => {},
+      });
+    };
 
   for (const lang of LANGS) {
     it(`says the number is in minutes for a "Minutes" activity (${lang})`, () => {
