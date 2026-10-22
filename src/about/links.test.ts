@@ -43,7 +43,7 @@ describe('contact points in the app', () => {
     });
 
   it('never links to the unregistered traceroutine.app domain, in code or in any text', () => {
-    const shipped = [...sources(join(root, 'app')), ...sources(join(root, 'src')), ...sources(join(root, 'locales')), join(root, 'docs/privacy.html')];
+    const shipped = [...sources(join(root, 'app')), ...sources(join(root, 'src')), ...sources(join(root, 'locales')), join(root, 'docs/privacy.html'), join(root, 'docs/support.html')];
     expect(shipped).toContain(join(root, 'src/i18n/en.json'));
     expect(shipped).toContain(join(root, 'src/i18n/es.json'));
     const offenders = shipped.filter((f) => readFileSync(f, 'utf8').includes('traceroutine.app'));
@@ -93,5 +93,48 @@ describe('privacy policy text (docs/privacy.html)', () => {
     expect(count(es, /<p>/g)).toBe(count(en, /<p>/g));
     expect(count(es, /<li>/g)).toBe(count(en, /<li>/g));
     expect(count(es, /href="mailto:/g)).toBe(count(en, /href="mailto:/g));
+  });
+});
+
+describe('support page (docs/support.html, the App Store Support URL)', () => {
+  const page = readFileSync(join(root, 'docs/support.html'), 'utf8');
+  // Like the policy: Spanish first, English from id="en", which the en-US listing links to.
+  const [es, en] = page.split('<hr id="en">');
+  const dict = { es: JSON.parse(readFileSync(join(root, 'src/i18n/es.json'), 'utf8')), en: JSON.parse(readFileSync(join(root, 'src/i18n/en.json'), 'utf8')) };
+  const label = (lang: 'es' | 'en', key: string): string => key.split('.').reduce((node, part) => node[part], dict[lang]);
+
+  it('has a Spanish half and an English half, with the same sections and links', () => {
+    expect(es).toBeTruthy();
+    expect(en).toBeTruthy();
+    const count = (half: string, re: RegExp) => half.match(re)?.length ?? 0;
+    // The Spanish half also has the jump to the English one (href="#en").
+    for (const re of [/<h2>/g, /<h3>/g, /<p>/g, /href="(?!#en")/g]) expect(count(es, re)).toBe(count(en, re));
+  });
+  it('names the publisher, the support inbox and the copyright in each language', () => {
+    expect(es).toContain('publicada por MORDOBO TECHNOLOGIES LLC');
+    expect(en).toContain('published by MORDOBO TECHNOLOGIES LLC');
+    for (const half of [es, en]) {
+      expect(half).toContain(`<a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>`);
+      expect(half).toContain('© 2026 MORDOBO TECHNOLOGIES LLC');
+    }
+    expect(es).toContain('<a href="privacy.html">');
+    expect(en).toContain('<a href="privacy.html#en">');
+  });
+  it('quotes the app\'s own labels, so the steps match what Settings and the editor show', () => {
+    const keys = [
+      'settings.feedback', 'settings.backupExport', 'settings.backupImport', 'settings.importReplace', 'settings.importMerge',
+      'settings.exportCsv', 'settings.deleteAll', 'settings.deleteContinue', 'settings.deleteBackupFirst', 'editor.delete',
+      'reminders.permissionUndetermined', 'reminders.enable', 'reminders.permissionDenied', 'reminders.openSystemSettings',
+      'editor.reminder', 'settings.morningSummary', 'settings.morningTime', 'reminders.actionDone', 'reminders.actionMin',
+      'editor.archive', 'settings.unarchive',
+    ];
+    for (const key of keys) {
+      expect(es, key).toContain(`"${label('es', key)}"`);
+      expect(en, key).toContain(`"${label('en', key)}"`);
+    }
+    expect(es).toContain(`escribe ${label('es', 'settings.deleteWord')}`);
+    expect(en).toContain(`type ${label('en', 'settings.deleteWord')}`);
+    expect(es).toContain(`"${label('es', 'reminders.summaryTitle').replace('{n}', 'N')}"`);
+    expect(en).toContain(`"${label('en', 'reminders.summaryTitle').replace('{n}', 'N')}"`);
   });
 });

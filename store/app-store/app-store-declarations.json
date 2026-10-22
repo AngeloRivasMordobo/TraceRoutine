@@ -1,0 +1,64 @@
+{
+  "$comment": "TraceRoutine iOS: the App Store Connect declarations that the code makes true, in machine-readable form. The full record, field by field and with dates, is APP-STORE-CONNECT.md (row per key in 'Qué depende de qué'); Google Play's is store/google-play/GOOGLE-PLAY-CONSOLE.md. src/release/appStoreDeclarations.test.ts derives every value below from the code and fails when they diverge. signIn.mode is none | optional | required; when it is not none, signIn.gate names the exported boolean constant that makes the login required (true) or optional (false). Public repo: never put API key IDs, issuer IDs, passwords, demo-account credentials or phone numbers here.",
+  "app": "TraceRoutine",
+  "record": {
+    "status": "pendiente de introducir",
+    "enteredOn": null,
+    "build": null,
+    "updatedOn": "2026-10-21"
+  },
+  "declarations": {
+    "bundleId": "app.traceroutine",
+    "appleId": null,
+    "version": "1.0.0",
+    "name": "TraceRoutine",
+    "primaryLanguage": "es-MX",
+    "localizations": ["es-MX", "es-ES", "en-US"],
+    "supportsTablet": false,
+    "usesNonExemptEncryption": false,
+    "encryptionLibraries": [],
+    "signIn": { "mode": "none", "gate": null },
+    "accountCreation": false,
+    "dataCollected": false,
+    "networkCalls": [],
+    "inAppBrowserCalls": [],
+    "tracking": false,
+    "containsAds": false,
+    "inAppPurchases": false,
+    "minimumAge": null,
+    "ageRating": { "rating": "4+", "raisedBy": [] },
+    "ageRatingOverride": null,
+    "ageRatingAnswers": {
+      "parentalControls": false,
+      "ageAssurance": false,
+      "unrestrictedWebAccess": false,
+      "userGeneratedContent": false,
+      "messagingAndChat": false,
+      "socialMedia": false,
+      "advertising": false,
+      "healthOrWellnessTopics": false
+    },
+    "regulatedMedicalDevice": false,
+    "readsHealthData": false,
+    "permissions": ["notifications"],
+    "iosUsageDescriptions": [],
+    "pushNotifications": false,
+    "supportEmail": "support@mordobo.com",
+    "supportUrl": {
+      "es-MX": "https://angelorivasmordobo.github.io/TraceRoutine/support.html",
+      "es-ES": "https://angelorivasmordobo.github.io/TraceRoutine/support.html",
+      "en-US": "https://angelorivasmordobo.github.io/TraceRoutine/support.html#en"
+    },
+    "privacyPolicyUrl": {
+      "es-MX": "https://angelorivasmordobo.github.io/TraceRoutine/privacy.html",
+      "es-ES": "https://angelorivasmordobo.github.io/TraceRoutine/privacy.html",
+      "en-US": "https://angelorivasmordobo.github.io/TraceRoutine/privacy.html#en"
+    },
+    "activeActivityLimit": 5,
+    "everyNMax": 30,
+    "patternsAfterScheduledDays": 14,
+    "trendWeeks": 12,
+    "trendAfterWeeks": 2,
+    "screenshotsPerLocale": 8
+  }
+}
