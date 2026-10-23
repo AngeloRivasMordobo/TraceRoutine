@@ -45,14 +45,14 @@ Estados: `declarado AAAA-MM-DD` · `publicado AAAA-MM-DD` · **(verificar)**: to
 | Seguridad de los datos | No se recopilan ni se comparten datos | **Solo es verdad mientras el build de Android no lleve claves de PostHog ni de Sentry**: en Android `analyticsAllowed` es `true` ([conflicto 3](#conflictos-con-ios)) | declarado 2026-09-10 (verificar) |
 | Funciones financieras | Ninguna | La app no maneja dinero | declarado 2026-09-10 (verificar) |
 | App gubernamental | No | — | declarado 2026-09-10 (verificar) |
-| Apps de salud | "Medication and Treatment Management" (gestión de medicación y tratamientos) | La sugerencia "Tratamiento cada 2 días" (`firstActivity.treatment`) y los recordatorios de tratamiento | declarado 2026-09-10 (verificar). **No cuadra con el plan de iOS** ([conflicto 1](#conflictos-con-ios)). |
+| Apps de salud | "Medication and Treatment Management" (gestión de medicación y tratamientos) | La sugerencia "Tratamiento cada 2 días" (`firstActivity.treatment`) y los recordatorios de tratamiento | declarado 2026-09-10 (verificar). **No cuadra con lo introducido en iOS** ([conflicto 1](#conflictos-con-ios)). |
 | Eliminación de la cuenta | No aplica: no hay cuentas | `signIn` = `none` | (verificar que Play Console no la pide) |
 
 ## Conflictos con iOS
 
-Lo declarado en Play que no cuadra con lo planeado en [`APP-STORE-CONNECT.md`](../app-store/APP-STORE-CONNECT.md). Cada uno es una decisión del dueño, o un aviso que hay que tener presente antes de un build de Android.
+Lo declarado en Play que no cuadra con lo introducido en App Store Connect ([`APP-STORE-CONNECT.md`](../app-store/APP-STORE-CONNECT.md), 21 de octubre de 2026). Cada uno es una decisión del dueño, o un aviso que hay que tener presente antes de un build de Android.
 
-1. **Salud.** Play declara la función de salud "Medication and Treatment Management". En iOS el plan es responder **No** a "Health or wellness topics" y **None** a "Medical or treatment information", con las categorías Productividad / Estilo de vida y el posicionamiento no médico (TR-81). Esto entra en la decisión 6 de "Pendiente de verificar" del registro de iOS. Las preguntas no son la misma: la de Play es qué funciones tiene la app, y la de Apple es qué contenido muestra. Aun así, la decisión se toma para las dos tiendas y se anota aquí y allí.
+1. **Salud.** Play declara la función de salud "Medication and Treatment Management". En iOS se respondió **No** a "Health or wellness topics" y **None** a "Medical or treatment information" (introducido el 21 de octubre de 2026, clasificación 4+), con las categorías Productividad / Estilo de vida y el posicionamiento no médico (TR-81). Queda por decidir si Play se cambia para que cuadre. Las preguntas no son la misma: la de Play es qué funciones tiene la app, y la de Apple es qué contenido muestra. Aun así, la decisión se toma para las dos tiendas y se anota aquí y allí.
 2. **Correo de contacto.** Play muestra `angelo.rivas@mordobo.com`. La app ("Enviar comentarios"), la política, la página de soporte y App Store Connect usan `support@mordobo.com` (`SUPPORT_EMAIL`). Lo lógico es pasar Play a `support@mordobo.com` en cuanto ese buzón reciba correo (decisión del dueño).
 3. **Seguridad de los datos.** "No se recopilan datos" solo es verdad mientras el entorno `production` de EAS no tenga `EXPO_PUBLIC_POSTHOG_KEY` ni `EXPO_PUBLIC_SENTRY_DSN`. El 19 de octubre de 2026 no tenía ninguna variable (`docs/RELEASE-IOS.md` §5). Antes de subir un build de Android con esas claves, hay que actualizar Seguridad de los datos (Datos de uso → Interacciones con la app, Fallos y diagnóstico, el ID de instalación de PostHog) y `docs/privacy.html`.
 
@@ -86,3 +86,4 @@ Lo declarado en Play que no cuadra con lo planeado en [`APP-STORE-CONNECT.md`](.
 | 2026-09-10 | Primer envío a revisión de producción, con las declaraciones de §3 | 2 |
 | 2026-09-17 | Aprobado y publicado en producción | 2 |
 | 2026-10-21 | Se crea este registro a partir de las notas del envío. No se ha leído nada de Play Console, por eso todo está en (verificar). | 2 |
+| 2026-10-22 | El conflicto 1 se actualiza: App Store Connect ya tiene introducido "Health or wellness topics" = No (21 de octubre de 2026). Nada cambia en Play Console. | 2 |

@@ -1,206 +1,20 @@
 # TraceRoutine · App Store Connect listing (iOS 1.0)
 
-Everything App Store Connect asks for the first iOS release, ready to paste. Each text box below goes into the App Store Connect field with the same name, exactly as written (App Store Connect does not render Markdown).
+Everything App Store Connect asks for the first iOS release, ready to paste. Each text box below goes into the App Store Connect field with the same name, exactly as written (App Store Connect does not render Markdown). Angelo entered the en-US listing on 2026-10-21 with build 1.0.0 (1).
 
-- **Seller**: MORDOBO TECHNOLOGIES LLC (Organization, Team ID `CTC5PRH3D3`). Bundle ID `app.traceroutine`, SKU `traceroutine-ios`.
+- **Seller**: MORDOBO TECHNOLOGIES LLC (Organization, Team ID `CTC5PRH3D3`). Bundle ID `app.traceroutine`. The app record was created by `eas submit` (`appName` in `eas.json`), so its SKU is the one EAS chose, not `traceroutine-ios` (read it in App Information).
 - **iOS 1.0 ships**: iPhone only, no account, no in-app purchases, no subscriptions, no ads, no analytics or crash reporting. See [`docs/RELEASE-IOS.md`](../../docs/RELEASE-IOS.md) for the build and submission runbook.
-- **Rule for every public text** (name, subtitle, promotional text, description, keywords, What's New, screenshot captions): never mention the other platform or its store, prices, paid plans, ads, or features the iOS build does not show (widget, month sharing, templates, sync). `src/release/storeListing.test.ts` enforces this and Apple's limits: `npm test`.
-- **What is actually entered**: this file is the plan. [`APP-STORE-CONNECT.md`](APP-STORE-CONNECT.md) records what was entered in App Store Connect, field by field, with dates, builds and where it differs from the blocks below.
-- **Languages**: Spanish (Mexico) is the primary language. Spanish (Spain) and English (U.S.) are localizations. The app itself has one Spanish (`src/i18n/es.json`), so in-app labels quoted below are the same in both Spanish listings; the es-ES copy only changes the prose around them.
+- **Rule for every public text** (name, subtitle, promotional text, description, keywords, What's New, screenshot captions): never mention the other platform or its store, prices, paid plans, ads, or features the iOS build does not show (widget, month sharing, templates, sync), and **no emoji** in anything pasted into App Store Connect: it refuses them with "This field contains one or more invalid characters" (TraceCosts, 2026-10-21); "•" and "·" are accepted. `src/release/storeListing.test.ts` enforces this and Apple's limits: `npm test`.
+- **Every claim is checked against the code**: each feature line and each number of the Promotional text, the Description and the review Notes is derived from the build in `src/release/appStoreDeclarations.test.ts` (`STATEMENTS`, with the declarations of `app-store-declarations.json`), and a number in an entered text that no declaration explains fails the test. [`APP-STORE-CONNECT.md`](APP-STORE-CONNECT.md) → "Qué dice la ficha" maps each line to its code and to the fields to change.
+- **What is actually entered**: [`APP-STORE-CONNECT.md`](APP-STORE-CONNECT.md) records what was entered in App Store Connect, field by field, with dates, builds and where it differs from the blocks below. Each `## <locale>` heading says "entered AAAA-MM-DD" or "draft, not entered"; a draft never counts as entered (`localizations` in `app-store-declarations.json`).
+- **Languages**: **English (U.S.) is the primary language and the only localization entered** (2026-10-21). `eas submit` created the record in English (U.S.), and Angelo keeps the three apps English-only on the App Store. The es-MX and es-ES sections below are **drafts, not entered**, kept ready and still checked by the tests. The app binary is bilingual (English and Spanish, `CFBundleLocalizations`), so the App Store page lists both languages whatever the listing localizations are. The app has one Spanish (`src/i18n/es.json`), so in-app labels quoted in the drafts are the same in both Spanish listings; the es-ES copy only changes the prose around them.
+- **Known issues in build 1.0.0 (1)**, deferred to 1.0.1 (the owner did not ask for a fix before submitting): in Month, tapping a day marks the next day, so "Tap a past cell to edit the past" (Description) and "tap a past cell to change it" (Notes, step 3) only hold once that is fixed. Today does not put pending activities first ("Pending first." in the Description), and two lines of the Notes step 3 say something other than what Stats does ("patterns appear after 14 scheduled days", "after two weeks of logs"). All seven are in [`APP-STORE-CONNECT.md`](APP-STORE-CONNECT.md) → "Fallos conocidos" and in `KNOWN_ISSUES` of `src/release/appStoreDeclarations.test.ts`; the lines stay as entered until the next version.
 
 ---
 
-## es-MX · Spanish (Mexico), primary language
+## en-US · English (U.S.), primary language · entered 2026-10-21
 
-### Name (max 30)
-
-```text
-TraceRoutine
-```
-
-### Subtitle (max 30)
-
-```text
-Hábitos con tu frecuencia real
-```
-
-### Promotional text (max 170)
-
-```text
-Entrenar día por medio, fisio L-X-V, leer 3 veces por semana: TraceRoutine sigue tu frecuencia real y solo te pide cuentas los días que tocan. Sin cuenta y sin rachas.
-```
-
-### Description (max 4000)
-
-```text
-No todo es diario. Entrenas día por medio, vas a fisio lunes, miércoles y viernes, lees 3 veces por semana o riegas las plantas cada 4 días. TraceRoutine registra cualquier actividad con su frecuencia real y solo te pide cuentas los días que tocan.
-
-FRECUENCIAS DE VERDAD
-• Todos los días, día por medio o cada N días, de 1 a 30.
-• Días fijos de la semana, como lunes, miércoles y viernes.
-• Un número de veces por semana, y tú eliges qué días.
-• Ciclos con días de descanso, como empuje · jalón · pierna · descanso.
-• Si un día no lo haces, tú decides qué pasa: la actividad sigue el calendario o cuenta desde la última vez.
-• Mientras la configuras, ves en el mes qué días te toca.
-
-LOS DÍAS MALOS TAMBIÉN CUENTAN
-Cada actividad puede tener una versión mínima: correr 5 km un día normal, caminar 10 minutos un día malo. La mínima cuenta como cumplida y no rompe tu constancia. Si hoy no puedes, omítela con un motivo opcional.
-
-HOY, EN UN VISTAZO
-• Primero lo pendiente. Toca el círculo para completar, mantén presionado para la mínima o desliza para omitir.
-• Solo marca, o anota minutos o una cantidad: páginas, km, repeticiones.
-• ¿Hoy no toca nada? Día libre. No te inventamos tareas.
-
-TU MES EN UNA CUADRÍCULA
-Todas tus actividades, día por día: hechas, mínimas, omitidas y los días que no tocaban. Toca una celda pasada para corregir el pasado, sin drama.
-
-CONSTANCIA, NO RACHAS
-La constancia se mide sobre los días que tocaban: la mínima cuenta, los días que no tocan no restan y lo de hoy no cuenta mientras esté pendiente. En Estadísticas ves la constancia del mes y de cada actividad, tu mejor mes, tu mejor día de la semana, el día que más fallas y la tendencia de las últimas 12 semanas.
-
-RECORDATORIOS SIN INSISTIR
-Un aviso por actividad y solo los días que toca. El resumen matinal junta en una sola notificación lo que toca hoy. Desde el aviso de una actividad puedes marcarla como hecha o mínima sin abrir la app.
-
-TUS DATOS, EN TU TELÉFONO
-• Sin cuenta ni registro: todo se guarda en tu dispositivo.
-• Exporta a CSV, que se abre en Excel o Sheets, o guarda un respaldo JSON para cambiar de teléfono sin perder nada.
-• Borra todos tus datos cuando quieras desde Ajustes.
-
-ADEMÁS
-• En español e inglés.
-• Tema oscuro, claro o automático.
-• Fechas de inicio y fin para lo que dura un tiempo, con atajos de 21 días, 4 semanas o 3 meses.
-• Hasta 5 actividades activas a la vez. Archiva las que ya no uses: su historial se conserva.
-
-TraceRoutine no es un dispositivo médico y no diagnostica, trata, cura ni previene ninguna condición. Los recordatorios de medicación o tratamiento son solo organizativos; consulta siempre a un profesional de la salud.
-
-¿Dudas o ideas? Escríbenos a support@mordobo.com.
-```
-
-### Keywords (max 100 bytes)
-
-```text
-rutina,constancia,recordatorio,seguimiento,tracker,metas,objetivos,diario,entreno,gimnasio,ciclo
-```
-
-### What's New (max 4000)
-
-```text
-Gracias por usar TraceRoutine. Esta versión corrige errores y mejora la estabilidad.
-
-¿Algo no funciona como esperas? Escríbenos a support@mordobo.com.
-```
-
-### Screenshot captions
-
-```text
-1. Solo lo que te toca hoy
-2. Tu frecuencia real, no solo diaria
-3. Si fallas un día, tú decides qué pasa
-4. Los días malos también cuentan
-5. Tu mes en una cuadrícula
-6. Constancia, no rachas
-7. Un aviso, solo los días que toca
-8. Tus datos viven en tu dispositivo
-```
-
----
-
-## es-ES · Spanish (Spain)
-
-### Name (max 30)
-
-```text
-TraceRoutine
-```
-
-### Subtitle (max 30)
-
-```text
-Hábitos con tu frecuencia real
-```
-
-### Promotional text (max 170)
-
-```text
-Entrenar en días alternos, fisio L-X-V, leer 3 veces por semana: TraceRoutine sigue tu frecuencia real y solo te pide cuentas los días que tocan. Sin cuenta ni rachas.
-```
-
-### Description (max 4000)
-
-```text
-No todo es diario. Entrenas un día sí y otro no, vas al fisio lunes, miércoles y viernes, lees 3 veces por semana o riegas las plantas cada 4 días. TraceRoutine registra cualquier actividad con su frecuencia real y solo te pide cuentas los días que tocan.
-
-FRECUENCIAS DE VERDAD
-• Todos los días, en días alternos o cada N días, de 1 a 30.
-• Días fijos de la semana, como lunes, miércoles y viernes.
-• Un número de veces por semana, y tú eliges qué días.
-• Ciclos con días de descanso, como A/B/descanso para entrenar.
-• Si un día no lo haces, tú decides qué pasa: la actividad sigue el calendario o cuenta desde la última vez.
-• Mientras la configuras, ves en el mes qué días te toca.
-
-LOS DÍAS MALOS TAMBIÉN CUENTAN
-Cada actividad puede tener una versión mínima: correr 5 km un día normal, caminar 10 minutos un día malo. La mínima cuenta como cumplida y no rompe tu constancia. Si hoy no puedes, omítela con un motivo opcional.
-
-HOY, DE UN VISTAZO
-• Primero lo pendiente. Toca el círculo para completar, mantenlo pulsado para la mínima o desliza para omitir.
-• Solo marcar, o apuntar minutos o una cantidad: páginas, km, repeticiones.
-• ¿Hoy no toca nada? Día libre. No te inventamos tareas.
-
-TU MES EN UNA CUADRÍCULA
-Todas tus actividades, día a día: hechas, mínimas, omitidas y los días que no tocaban. Toca una celda pasada para corregir el pasado, sin dramas.
-
-CONSTANCIA, NO RACHAS
-La constancia se mide sobre los días que tocaban: la mínima cuenta, los días que no tocan no restan y lo de hoy no cuenta mientras esté pendiente. En Estadísticas ves la constancia del mes y de cada actividad, tu mejor mes, tu mejor día de la semana, el día que más fallas y la tendencia de las últimas 12 semanas.
-
-RECORDATORIOS SIN AGOBIAR
-Un aviso por actividad y solo los días que toca. El resumen matinal reúne en una sola notificación lo que toca hoy. Desde el aviso de una actividad puedes marcarla como hecha o mínima sin abrir la app.
-
-TUS DATOS, EN TU MÓVIL
-• Sin cuenta ni registro: todo se guarda en tu dispositivo.
-• Exporta a CSV, que se abre en Excel o Sheets, o guarda una copia de seguridad en JSON para cambiar de móvil sin perder nada.
-• Borra todos tus datos cuando quieras desde Ajustes.
-
-ADEMÁS
-• En español e inglés.
-• Tema oscuro, claro o automático.
-• Fechas de inicio y fin para lo que dura un tiempo, con atajos de 21 días, 4 semanas o 3 meses.
-• Hasta 5 actividades activas a la vez. Archiva las que ya no uses: su historial se conserva.
-
-TraceRoutine no es un dispositivo médico y no diagnostica, trata, cura ni previene ninguna condición. Los recordatorios de medicación o tratamiento son solo organizativos; consulta siempre a un profesional sanitario.
-
-¿Dudas o ideas? Escríbenos a support@mordobo.com.
-```
-
-### Keywords (max 100 bytes)
-
-```text
-rutina,constancia,recordatorio,seguimiento,tracker,metas,objetivos,diario,entrenar,gimnasio,ciclo
-```
-
-### What's New (max 4000)
-
-```text
-Gracias por usar TraceRoutine. Esta versión corrige errores y mejora la estabilidad.
-
-¿Algo no funciona como esperas? Escríbenos a support@mordobo.com.
-```
-
-### Screenshot captions
-
-```text
-1. Solo lo que te toca hoy
-2. Tu frecuencia real, no solo diaria
-3. Si fallas un día, tú decides qué pasa
-4. Los días malos también cuentan
-5. Tu mes en una cuadrícula
-6. Constancia, no rachas
-7. Un aviso, solo los días que toca
-8. Tus datos se quedan en tu móvil
-```
-
----
-
-## en-US · English (U.S.)
+Entered in App Store Connect on 2026-10-21 (build 1.0.0 (1)), every block exactly as below: Name and Subtitle in App Information, Promotional text, Description and Keywords on the 1.0.0 version page. The captions are not an App Store Connect field. What's New does not exist for 1.0.0.
 
 ### Name (max 30)
 
@@ -295,12 +109,212 @@ Something not working as you expect? Write to support@mordobo.com.
 
 ---
 
+## es-MX · Spanish (Mexico) · draft, not entered
+
+Not in App Store Connect: the store listing is English-only (owner decision, 2026-10-21, the same for the three apps). Kept ready and checked by the tests in case it is added later; adding it means pasting these blocks and the `screenshots-6.3/es-MX/` set, changing this heading to "entered AAAA-MM-DD" and recording it in [`APP-STORE-CONNECT.md`](APP-STORE-CONNECT.md).
+
+### Name (max 30)
+
+```text
+TraceRoutine
+```
+
+### Subtitle (max 30)
+
+```text
+Hábitos con tu frecuencia real
+```
+
+### Promotional text (max 170)
+
+```text
+Entrenar día por medio, fisio L-X-V, leer 3 veces por semana: TraceRoutine sigue tu frecuencia real y solo te pide cuentas los días que tocan. Sin cuenta y sin rachas.
+```
+
+### Description (max 4000)
+
+```text
+No todo es diario. Entrenas día por medio, vas a fisio lunes, miércoles y viernes, lees 3 veces por semana o riegas las plantas cada 4 días. TraceRoutine registra cualquier actividad con su frecuencia real y solo te pide cuentas los días que tocan.
+
+FRECUENCIAS DE VERDAD
+• Todos los días, día por medio o cada N días, de 1 a 30.
+• Días fijos de la semana, como lunes, miércoles y viernes.
+• Un número de veces por semana, y tú eliges qué días.
+• Ciclos con días de descanso, como empuje · jalón · pierna · descanso.
+• Si un día no lo haces, tú decides qué pasa: la actividad sigue el calendario o cuenta desde la última vez.
+• Mientras la configuras, ves en el mes qué días te toca.
+
+LOS DÍAS MALOS TAMBIÉN CUENTAN
+Cada actividad puede tener una versión mínima: correr 5 km un día normal, caminar 10 minutos un día malo. La mínima cuenta como cumplida y no rompe tu constancia. Si hoy no puedes, omítela con un motivo opcional.
+
+HOY, EN UN VISTAZO
+• Primero lo pendiente. Toca el círculo para completar, mantén presionado para la mínima o desliza para omitir.
+• Solo marca, o anota minutos o una cantidad: páginas, km, repeticiones.
+• ¿Hoy no toca nada? Día libre. No te inventamos tareas.
+
+TU MES EN UNA CUADRÍCULA
+Todas tus actividades, día por día: hechas, mínimas, omitidas y los días que no tocaban. Toca una celda pasada para corregir el pasado, sin drama.
+
+CONSTANCIA, NO RACHAS
+La constancia se mide sobre los días que tocaban: la mínima cuenta, los días que no tocan no restan y lo de hoy no cuenta mientras esté pendiente. En Estadísticas ves la constancia del mes y de cada actividad, tu mejor mes, tu mejor día de la semana, el día que más fallas y la tendencia de las últimas 12 semanas.
+
+RECORDATORIOS SIN INSISTIR
+Un aviso por actividad y solo los días que toca. El resumen matinal junta en una sola notificación lo que toca hoy. Desde el aviso de una actividad puedes marcarla como hecha o mínima sin abrir la app.
+
+TUS DATOS, EN TU TELÉFONO
+• Sin cuenta ni registro: todo se guarda en tu dispositivo.
+• Exporta a CSV, que se abre en Excel o Sheets, o guarda un respaldo JSON para cambiar de teléfono sin perder nada.
+• Borra todos tus datos cuando quieras desde Ajustes.
+
+ADEMÁS
+• En español e inglés.
+• Tema oscuro, claro o automático.
+• Fechas de inicio y fin para lo que dura un tiempo, con atajos de 21 días, 4 semanas o 3 meses.
+• Hasta 5 actividades activas a la vez. Archiva las que ya no uses: su historial se conserva.
+
+TraceRoutine no es un dispositivo médico y no diagnostica, trata, cura ni previene ninguna condición. Los recordatorios de medicación o tratamiento son solo organizativos; consulta siempre a un profesional de la salud.
+
+¿Dudas o ideas? Escríbenos a support@mordobo.com.
+```
+
+### Keywords (max 100 bytes)
+
+```text
+rutina,constancia,recordatorio,seguimiento,tracker,metas,objetivos,diario,entreno,gimnasio,ciclo
+```
+
+### What's New (max 4000)
+
+```text
+Gracias por usar TraceRoutine. Esta versión corrige errores y mejora la estabilidad.
+
+¿Algo no funciona como esperas? Escríbenos a support@mordobo.com.
+```
+
+### Screenshot captions
+
+```text
+1. Solo lo que te toca hoy
+2. Tu frecuencia real, no solo diaria
+3. Si fallas un día, tú decides qué pasa
+4. Los días malos también cuentan
+5. Tu mes en una cuadrícula
+6. Constancia, no rachas
+7. Un aviso, solo los días que toca
+8. Tus datos viven en tu dispositivo
+```
+
+---
+
+## es-ES · Spanish (Spain) · draft, not entered
+
+Not in App Store Connect, like es-MX. It would use the es-MX screenshots (the app has one Spanish).
+
+### Name (max 30)
+
+```text
+TraceRoutine
+```
+
+### Subtitle (max 30)
+
+```text
+Hábitos con tu frecuencia real
+```
+
+### Promotional text (max 170)
+
+```text
+Entrenar en días alternos, fisio L-X-V, leer 3 veces por semana: TraceRoutine sigue tu frecuencia real y solo te pide cuentas los días que tocan. Sin cuenta ni rachas.
+```
+
+### Description (max 4000)
+
+```text
+No todo es diario. Entrenas un día sí y otro no, vas al fisio lunes, miércoles y viernes, lees 3 veces por semana o riegas las plantas cada 4 días. TraceRoutine registra cualquier actividad con su frecuencia real y solo te pide cuentas los días que tocan.
+
+FRECUENCIAS DE VERDAD
+• Todos los días, en días alternos o cada N días, de 1 a 30.
+• Días fijos de la semana, como lunes, miércoles y viernes.
+• Un número de veces por semana, y tú eliges qué días.
+• Ciclos con días de descanso, como A/B/descanso para entrenar.
+• Si un día no lo haces, tú decides qué pasa: la actividad sigue el calendario o cuenta desde la última vez.
+• Mientras la configuras, ves en el mes qué días te toca.
+
+LOS DÍAS MALOS TAMBIÉN CUENTAN
+Cada actividad puede tener una versión mínima: correr 5 km un día normal, caminar 10 minutos un día malo. La mínima cuenta como cumplida y no rompe tu constancia. Si hoy no puedes, omítela con un motivo opcional.
+
+HOY, DE UN VISTAZO
+• Primero lo pendiente. Toca el círculo para completar, mantenlo pulsado para la mínima o desliza para omitir.
+• Solo marcar, o apuntar minutos o una cantidad: páginas, km, repeticiones.
+• ¿Hoy no toca nada? Día libre. No te inventamos tareas.
+
+TU MES EN UNA CUADRÍCULA
+Todas tus actividades, día a día: hechas, mínimas, omitidas y los días que no tocaban. Toca una celda pasada para corregir el pasado, sin dramas.
+
+CONSTANCIA, NO RACHAS
+La constancia se mide sobre los días que tocaban: la mínima cuenta, los días que no tocan no restan y lo de hoy no cuenta mientras esté pendiente. En Estadísticas ves la constancia del mes y de cada actividad, tu mejor mes, tu mejor día de la semana, el día que más fallas y la tendencia de las últimas 12 semanas.
+
+RECORDATORIOS SIN AGOBIAR
+Un aviso por actividad y solo los días que toca. El resumen matinal reúne en una sola notificación lo que toca hoy. Desde el aviso de una actividad puedes marcarla como hecha o mínima sin abrir la app.
+
+TUS DATOS, EN TU MÓVIL
+• Sin cuenta ni registro: todo se guarda en tu dispositivo.
+• Exporta a CSV, que se abre en Excel o Sheets, o guarda una copia de seguridad en JSON para cambiar de móvil sin perder nada.
+• Borra todos tus datos cuando quieras desde Ajustes.
+
+ADEMÁS
+• En español e inglés.
+• Tema oscuro, claro o automático.
+• Fechas de inicio y fin para lo que dura un tiempo, con atajos de 21 días, 4 semanas o 3 meses.
+• Hasta 5 actividades activas a la vez. Archiva las que ya no uses: su historial se conserva.
+
+TraceRoutine no es un dispositivo médico y no diagnostica, trata, cura ni previene ninguna condición. Los recordatorios de medicación o tratamiento son solo organizativos; consulta siempre a un profesional sanitario.
+
+¿Dudas o ideas? Escríbenos a support@mordobo.com.
+```
+
+### Keywords (max 100 bytes)
+
+```text
+rutina,constancia,recordatorio,seguimiento,tracker,metas,objetivos,diario,entrenar,gimnasio,ciclo
+```
+
+### What's New (max 4000)
+
+```text
+Gracias por usar TraceRoutine. Esta versión corrige errores y mejora la estabilidad.
+
+¿Algo no funciona como esperas? Escríbenos a support@mordobo.com.
+```
+
+### Screenshot captions
+
+```text
+1. Solo lo que te toca hoy
+2. Tu frecuencia real, no solo diaria
+3. Si fallas un día, tú decides qué pasa
+4. Los días malos también cuentan
+5. Tu mes en una cuadrícula
+6. Constancia, no rachas
+7. Un aviso, solo los días que toca
+8. Tus datos se quedan en tu móvil
+```
+
+---
+
 ## Character counts
 
 Characters are Unicode code points; keywords are UTF-8 bytes, which is how App Store Connect counts them (an accented letter takes 2). `src/release/storeListing.test.ts` recomputes every row and fails if one drifts from the texts above.
 
 | Locale | Field | Used | Limit |
 |---|---|---|---|
+| en-US | Name | 12 | 30 |
+| en-US | Subtitle | 29 | 30 |
+| en-US | Promotional text | 165 | 170 |
+| en-US | Description | 2599 | 4000 |
+| en-US | Keywords | 97 | 100 bytes |
+| en-US | What's New | 146 | 4000 |
 | es-MX | Name | 12 | 30 |
 | es-MX | Subtitle | 30 | 30 |
 | es-MX | Promotional text | 167 | 170 |
@@ -313,12 +327,6 @@ Characters are Unicode code points; keywords are UTF-8 bytes, which is how App S
 | es-ES | Description | 2724 | 4000 |
 | es-ES | Keywords | 97 | 100 bytes |
 | es-ES | What's New | 151 | 4000 |
-| en-US | Name | 12 | 30 |
-| en-US | Subtitle | 29 | 30 |
-| en-US | Promotional text | 165 | 170 |
-| en-US | Description | 2599 | 4000 |
-| en-US | Keywords | 97 | 100 bytes |
-| en-US | What's New | 146 | 4000 |
 
 **What's New** only appears from the first update on: App Store Connect does not show it for 1.0.0. The text above is ready for the first 1.x update (1.0.1 or 1.1); replace the middle sentence with that release's real changes before submitting it.
 
@@ -329,14 +337,14 @@ Characters are Unicode code points; keywords are UTF-8 bytes, which is how App S
 | Field | Value |
 |---|---|
 | Name / Subtitle | Per locale, above |
-| Primary language | Spanish (Mexico). Set it when creating the app record by hand (App Store Connect → Apps → + → New App); if `eas submit` creates the record it uses English (U.S.), see RELEASE-IOS.md §2. |
-| Localizations | Spanish (Mexico), Spanish (Spain), English (U.S.) |
-| Bundle ID / SKU | `app.traceroutine` / `traceroutine-ios` |
+| Primary language | **English (U.S.)**. `eas submit -p ios --profile production --latest` created the record on 2026-10-21 and set it (RELEASE-IOS.md §2). |
+| Localizations | **English (U.S.) only** (entered 2026-10-21). Spanish (Mexico) and Spanish (Spain) are drafts above, not entered. |
+| Bundle ID / SKU | `app.traceroutine` / the SKU `eas submit` generated (`traceroutine-ios` was the plan for a record created by hand) |
 | Primary category | Productivity |
 | Secondary category | Lifestyle |
 | Content rights | **No**, it does not contain, show, or access third-party content. Everything on screen is what the user types on the device; the bundled Inter font (SIL Open Font License) and Phosphor icons (MIT) are licensed assets, not third-party content. |
 | Age rating | **4+**, questionnaire below |
-| Privacy Policy URL | es-MX and es-ES: `https://angelorivasmordobo.github.io/TraceRoutine/privacy.html` · en-US: `https://angelorivasmordobo.github.io/TraceRoutine/privacy.html#en` |
+| Privacy Policy URL | en-US: `https://angelorivasmordobo.github.io/TraceRoutine/privacy.html#en` (entered in App Privacy) · es-MX and es-ES: `https://angelorivasmordobo.github.io/TraceRoutine/privacy.html` (drafts, not entered) |
 | User Privacy Choices URL | Leave empty (there is nothing to opt out of) |
 | License agreement | Apple's standard EULA (no custom agreement) |
 
@@ -347,13 +355,14 @@ Health & Fitness and Medical are avoided on purpose: TraceRoutine tracks any act
 | Field | Value |
 |---|---|
 | Version | 1.0.0 (from `app.json`; EAS sets the build number) |
-| Support URL | es-MX and es-ES: `https://angelorivasmordobo.github.io/TraceRoutine/support.html` · en-US: `https://angelorivasmordobo.github.io/TraceRoutine/support.html#en` |
-| Marketing URL | Leave empty (optional). There is no product page today: `https://angelorivasmordobo.github.io/TraceRoutine/` has no index (404) and `mordobo.com` does not present the app. |
+| Support URL | en-US: `https://angelorivasmordobo.github.io/TraceRoutine/support.html#en` (entered) · es-MX and es-ES: `https://angelorivasmordobo.github.io/TraceRoutine/support.html` (drafts, not entered) |
+| Marketing URL | Empty (optional). There is no product page today: `https://angelorivasmordobo.github.io/TraceRoutine/` has no index (404) and `mordobo.com` does not present the app. |
 | Copyright | `2026 MORDOBO TECHNOLOGIES LLC` |
 | Routing App Coverage File | None |
-| Version release | Manually release this version (Angelo releases it after approval) |
+| Build | 1.0.0 (1) (EAS production, `sdk-57` image) |
+| Version release | **Automatically release this version** (owner decision, 2026-10-21, the same for the three apps): it goes live as soon as App Review approves it |
 
-**URL check (2026-10-20, `curl -sI`)**: `privacy.html` → **200**, and the published page already names MORDOBO TECHNOLOGIES LLC and `support@mordobo.com`. `support.html` is created by this branch (`docs/support.html`); GitHub Pages serves `/docs` from `main`, so it returns 404 until this branch is merged. Check it returns 200 before filling in the Support URL:
+**URL check**: `privacy.html` → **200** (2026-10-20), and the published page names MORDOBO TECHNOLOGIES LLC and `support@mordobo.com`. `support.html` (`docs/support.html`) → **200** since PR #2 was merged into `main` on 2026-10-21 (GitHub Pages serves `/docs` from `main`); checked again on 2026-10-22. Both have to answer 200 before every submission:
 
 ```bash
 curl -sI https://angelorivasmordobo.github.io/TraceRoutine/support.html | head -1
@@ -365,7 +374,7 @@ curl -sI https://angelorivasmordobo.github.io/TraceRoutine/support.html | head -
 |---|---|
 | Price | Free (no in-app purchases in this version) |
 | Availability | All countries or regions **except China mainland** |
-| Apple silicon Mac / Apple Vision Pro | Owner decision. Suggested: uncheck both for 1.0, since the app was only tested on iPhone (and iPad compatibility mode). |
+| Apple silicon Mac / Apple Vision Pro | **Both unchecked** (owner decision, 2026-10-21, the same for the three apps): the app has not been tested on a Mac or on Vision Pro. (The review on a real iPhone and on an iPad in compatibility mode is a separate pending item, RELEASE-IOS.md §4.) |
 
 Before the app can be distributed in the EU (Spain is a target market), the EU Digital Services Act trader status of MORDOBO TECHNOLOGIES LLC has to be declared in App Store Connect → Business (RELEASE-IOS.md §1).
 
@@ -398,7 +407,7 @@ If a later iOS version turns on PostHog or Sentry, App Privacy and `docs/privacy
 
 ## Age rating (App Store Connect → App Information → Age Rating)
 
-Apple's current questionnaire (the 2025 update with the 4+ / 9+ / 13+ / 16+ / 18+ ratings).
+Apple's current questionnaire (the 2025 update with the 4+ / 9+ / 13+ / 16+ / 18+ ratings). Entered on 2026-10-21 exactly as below: every capability No, every content item None or No.
 
 **Step 1 · In-app controls and capabilities**
 
@@ -434,7 +443,7 @@ Apple's current questionnaire (the 2025 update with the 4+ / 9+ / 13+ / 16+ / 18
 
 **Resulting rating: 4+** (App Store Connect shows each region's equivalent label).
 
-(*) Owner decision (also in RELEASE-IOS.md §6). TraceRoutine tracks any routine; its built-in examples include training, physio and a "Treatment every 2 days" suggestion, but it gives no health or medical content and reads no health data. Answering **Yes** to Health or wellness topics raises the rating to **9+**; nothing else changes.
+(*) Owner decision: **No**, entered 2026-10-21 (also in RELEASE-IOS.md §6). TraceRoutine tracks any routine; its built-in examples include training, physio and a "Treatment every 2 days" suggestion, but it gives no health or medical content and reads no health data. Answering **Yes** to Health or wellness topics raises the rating to **9+**; nothing else changes. Google Play still declares "Medication and Treatment Management" (conflict 1 in `store/google-play/GOOGLE-PLAY-CONSOLE.md`).
 
 ---
 
@@ -442,8 +451,9 @@ Apple's current questionnaire (the 2025 update with the 4+ / 9+ / 13+ / 16+ / 18
 
 | Field | Value |
 |---|---|
-| Sign-in required | **No** (leave the demo account empty) |
-| Contact | Angelo Rivas · Angelo's phone · `support@mordobo.com` |
+| Sign-in required | **No**, unchecked, and no demo account (there is no account: `signIn.mode` is `none`, `demoAccountProvided` is false). If sign-in ever becomes required, the box is checked and a demo account goes in App Store Connect only, never here (TraceCosts lesson, 2026-10-21). |
+| Contact | Angelo Rivas · Angelo's phone (not written here: the repo is public) · `support@mordobo.com` |
+| Notes | The block below, as is (entered 2026-10-21) |
 | Attachment | None |
 
 **Notes** (paste as is):
@@ -476,11 +486,13 @@ Already declared in the binary: `app.json` → `ios.config.usesNonExemptEncrypti
 
 ## Screenshots (6.9-inch iPhone, 1320 × 2868 px, portrait)
 
-**Upload the 6.3-inch copies** in [`screenshots-6.3/`](screenshots-6.3/) (1206 × 2622 px), made from the 6.9-inch originals in [`screenshots/`](screenshots/) with the command in [`screenshots/README.md`](screenshots/README.md): App Store Connect asked for the 6.3-inch class (lesson 1 in [`APP-STORE-CONNECT.md`](APP-STORE-CONNECT.md)).
+**Upload the 6.3-inch copies** in [`screenshots-6.3/`](screenshots-6.3/) (1206 × 2622 px), made from the 6.9-inch originals in [`screenshots/`](screenshots/) with the command in [`screenshots/README.md`](screenshots/README.md): App Store Connect asks for the 6.3-inch class, "iPhone with Dynamic Island (medium display)", which takes 1206 × 2622 (lesson 1 in [`APP-STORE-CONNECT.md`](APP-STORE-CONNECT.md)).
 
-Produced separately. Capture them from the TestFlight build on a real iPhone (RELEASE-IOS.md §8), with the app in the screenshot's language and the default dark theme. The es-MX and es-ES sets can use the same Spanish screenshots with their own captions; en-US needs the app in English.
+**Entered 2026-10-21**: the 8 files of `screenshots-6.3/en-US/` (`01-today` … `08-settings`, in that order) in the "iPhone with Dynamic Island (medium display)" slot of the en-US version page. They are byte for byte the files in `~/Desktop/Capturas-AppStore/TraceRoutine/en-US (6.3 - subir estas)` that Angelo dragged in. They were taken on the iOS Simulator (iPhone 18 Pro Max, iOS 27.0) from a Release simulator build of `b623f1f`, not from the EAS binary 1.0.0 (1), in the default dark theme, with the status bar set to 9:41 and the sample data below (details in [`screenshots/README.md`](screenshots/README.md)). The `es-MX/` set is ready for a Spanish localization that is not entered.
 
-**Sample data** (create it before capturing; at most 5 active activities). Set each activity's "Empieza" / "Starts" date 3 to 4 weeks back and fill the past by tapping cells in Month, so Stats has numbers and a trend. Avoid medication or treatment activities in the screenshots.
+**For the next set**: the same method (iOS Simulator, Release build, status bar 9:41, see `screenshots/README.md`), or the TestFlight build on a real iPhone (RELEASE-IOS.md §8), with the app in the screenshot's language and the default dark theme. The es-MX and es-ES sets can use the same Spanish screenshots with their own captions; en-US needs the app in English.
+
+**Sample data** (create it before capturing; at most 5 active activities). Set each activity's "Empieza" / "Starts" date 3 to 4 weeks back and fill the past by tapping cells in Month, so Stats has numbers and a trend. In build 1.0.0 (1) a tap can land on the next day (fallo 1 of "Fallos conocidos"): check every cell after tapping it. Avoid medication or treatment activities in the screenshots.
 
 | Spanish | English | Frequency | Log type and minimum |
 |---|---|---|---|
@@ -494,7 +506,7 @@ Produced separately. Capture them from the TestFlight build on a real iPhone (RE
 
 | # | Screen | What it shows |
 |---|---|---|
-| 1 | Today | Pending activities first, one already done, the "2 de 4 hechas" / "2 of 4 done" line |
+| 1 | Today | Pending activities first, one already done, the "2 de 4 hechas" / "2 of 4 done" line. In build 1.0.0 (1) Today keeps creation order (fallo 5), so create the pending ones first. |
 | 2 | Editor · Frequency | "Cada N" / "Every N" (or "Semana" / "Weekly") selected, with the month preview below |
 | 3 | Editor · "Si un día no lo haces" / "If you miss a day" | The two cards, "Sigue el calendario" and "Cuenta desde la última vez" / "Follows the calendar" and "Counts from the last time" |
 | 4 | Today · minimum | A row logged as the minimum (long-press), or the "¿Cuánto?" / "How much?" sheet for minutes |

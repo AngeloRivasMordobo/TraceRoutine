@@ -63,6 +63,8 @@ function parseListing(text: string): Record<Locale, Partial<Record<Field, string
 }
 
 const listing = parseListing(md);
+/** App Review Information → Notes, pasted as is. */
+const notes = /\*\*Notes\*\* \(paste as is\):\n\n```text\n([\s\S]*?)\n```/.exec(md)?.[1] ?? '';
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const words = (s: string) => fold(s).split(/[^a-z0-9]+/).filter(Boolean);
 
@@ -108,6 +110,32 @@ describe('store listing: every locale is complete and within Apple limits', () =
       expect(Number(count), `${locale} ${label}`).toBe(used(field, listing[locale as Locale][field] ?? ''));
       expect(Number(limit), `${locale} ${label}`).toBe(LIMITS[field as keyof typeof LIMITS]);
     }
+  });
+});
+
+/**
+ * App Store Connect rejects emoji in the listing fields: "This field contains one or more invalid characters"
+ * (TraceCosts, 2026-10-21, with emoji section markers in its description). The bullet "•" and the middle dot "·"
+ * are accepted. U+FE0F is the selector that turns a plain character into an emoji.
+ */
+const EMOJI = /[\p{Extended_Pictographic}\u{FE0F}]/u;
+
+describe('store listing: characters App Store Connect accepts', () => {
+  it('has no emoji in any text pasted into App Store Connect: every field of every locale (drafts too) and the review notes', () => {
+    const pasted = [
+      ...LOCALES.flatMap((locale) =>
+        (Object.entries(listing[locale]) as [Field, string][]).filter(([field]) => field !== 'captions').map(([field, text]) => ({ where: `${locale} ${field}`, text })),
+      ),
+      { where: 'App Review notes', text: notes },
+    ];
+    const withEmoji = pasted.filter((p) => EMOJI.test(p.text)).map((p) => `${p.where}: ${[...new Set(p.text.match(new RegExp(EMOJI.source, 'gu')))].join(' ')}`);
+    expect(withEmoji, 'App Store Connect refuses these fields ("invalid characters"): use "•" or "·" or plain words instead').toEqual([]);
+    expect(pasted.length).toBe(LOCALES.length * (Object.keys(FIELDS).length - 1) + 1);
+  });
+
+  it('tells an emoji from the bullets the listing uses', () => {
+    for (const marker of ['📊', '✅', '⚡', '❤️', '🐜']) expect(EMOJI.test(`${marker} SECTION`), marker).toBe(true);
+    expect(EMOJI.test('• Every day · push · pull · legs · rest. Questions? Write to support@mordobo.com.')).toBe(false);
   });
 });
 
@@ -186,7 +214,6 @@ describe('store listing: app information', () => {
     expect(md).toContain('Tracking: **No**');
   });
   it('keeps the review notes in English with no sign-in, and the non-medical notice', () => {
-    const notes = /\*\*Notes\*\* \(paste as is\):\n\n```text\n([\s\S]*?)\n```/.exec(md)?.[1] ?? '';
     expect(notes).toContain('There is no account or sign-in');
     expect(notes).toContain('no in-app purchases');
     expect(notes).toContain('Non-medical notice');
