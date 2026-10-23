@@ -4,8 +4,8 @@
 
 The order and captions come from [`../LISTING.md`](../LISTING.md) ("Screenshot captions" and "Screenshots"). Upload the files in number order. If only 5 are uploaded, use 1, 2, 4, 5 and 6.
 
-- `es-MX/`: the app in Spanish, for Spanish (Mexico) and also for Spanish (Spain). The app has a single Spanish, so es-ES uses the same files with its own captions.
-- `en-US/`: the app in English, for English (U.S.).
+- `en-US/`: the app in English, for English (U.S.), the only localization entered in App Store Connect. Its 6.3-inch copies were uploaded on 2026-10-21.
+- `es-MX/`: the app in Spanish, for Spanish (Mexico) and also for Spanish (Spain). Both are drafts in `LISTING.md`, not entered; the app has a single Spanish, so es-ES would use the same files with its own captions.
 
 **The set that is uploaded is the 6.3-inch copy** in [`../screenshots-6.3/`](../screenshots-6.3/): the same files, 1206 × 2622 px, RGB PNG without alpha. App Store Connect asked TracePhysique for the 6.3-inch "iPhone with Dynamic Island (medium display)" class on 2026-10-21, not 6.9-inch (lesson 1 in [`../APP-STORE-CONNECT.md`](../APP-STORE-CONNECT.md)). The copies are made from this set with `sips`; on macOS 26.6 the command below reproduces the committed files byte for byte. Run it from the repo root after retaking any screenshot, and commit both sets together:
 
